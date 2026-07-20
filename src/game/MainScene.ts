@@ -1,37 +1,39 @@
 import Phaser from 'phaser';
-import { INVARIANT_EVENT } from '@kbve/laser';
+import { bus } from '../bus';
+import { godotSend } from '../godot/bridge';
 
 /**
- * Minimal Phaser 4 scene. Bouncing box + a heartbeat emitted on the game's
- * EventEmitter, which Laser's usePhaserEvent(INVARIANT_EVENT) subscribes to.
+ * Phaser UI overlay scene (transparent). Two roles in the harness:
+ *   - subscribes to the shared bus and mirrors Godot's heartbeat as 2D text
+ *   - forwards pointer input to Godot via the bridge (godotSend 'pointer')
  */
 export class MainScene extends Phaser.Scene {
+  private label!: Phaser.GameObjects.Text;
+  private ticks = 0;
+  private off?: () => void;
+
   constructor() {
     super({ key: 'MainScene' });
   }
 
   create(): void {
-    const { width, height } = this.scale;
+    const { width } = this.scale;
 
-    this.add
-      .text(width / 2, 40, 'Phaser layer', { color: '#7dd3fc' })
-      .setOrigin(0.5);
+    this.label = this.add
+      .text(width / 2, 24, 'Phaser overlay • godot ticks: 0', { color: '#7dd3fc' })
+      .setOrigin(0.5, 0);
 
-    const box = this.add.rectangle(width / 2, height / 2, 64, 64, 0x38bdf8);
-    this.tweens.add({
-      targets: box,
-      y: height - 120,
-      duration: 900,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+    // Godot -> bus -> Phaser text.
+    this.off = bus.on('godot:tick', () => {
+      this.ticks += 1;
+      this.label.setText(`Phaser overlay • godot ticks: ${this.ticks}`);
     });
 
-    // Heartbeat on the game EventEmitter → reaches usePhaserEvent in React.
-    this.time.addEvent({
-      delay: 500,
-      loop: true,
-      callback: () => this.game.events.emit(INVARIANT_EVENT, { t: this.time.now }),
+    // Phaser overlay -> Godot (input forwarding).
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      godotSend('pointer', { x: Math.round(p.x), y: Math.round(p.y) });
     });
+
+    this.events.once('shutdown', () => this.off?.());
   }
 }

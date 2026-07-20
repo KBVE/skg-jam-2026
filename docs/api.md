@@ -5,6 +5,9 @@ React 19). **The package ships no `.d.ts`** despite declaring one, so all import
 untyped — we add `declare module '@kbve/laser'` in [`vite-env.d.ts`](../vite-env.d.ts).
 These notes are the de-facto type reference until the package ships real types.
 
+> See also [`godot.md`](./godot.md) — the Godot (WASM) ⇄ Phaser ⇄ React harness that
+> builds on this laser layer (shared `LaserEventBus`, `transparent` Phaser overlay).
+
 ## Install / peer deps
 
 ```bash

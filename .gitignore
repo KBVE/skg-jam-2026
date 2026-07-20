@@ -2,6 +2,12 @@ node_modules
 dist
 dist-ssr
 *.tsbuildinfo
+
+# Godot export output (regenerate with `npm run build:godot`)
+public/godot/
+
+# Godot editor cache
+godot/.godot/
 *.local
 .DS_Store
 .vite
