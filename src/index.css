@@ -24,21 +24,78 @@ body,
   height: 100vh;
 }
 
-/* R3F canvas floats above the Phaser layer for hybrid 2D/3D UI. */
+/* Shared full-bleed layer */
 .layer {
   position: absolute;
   inset: 0;
 }
 
-.layer-3d {
-  pointer-events: none;
+/* 1. Godot game — bottom */
+.godot-layer {
+  z-index: 0;
+}
+#godot-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
 }
 
+/* 2. Phaser transparent UI overlay — middle */
+.phaser-overlay {
+  z-index: 1;
+}
+.phaser-overlay canvas {
+  background: transparent !important;
+}
+
+/* Godot loading / error splash */
+.godot-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0.85;
+  background: #0b0d10;
+}
+.godot-error {
+  color: #f87171;
+}
+
+/* 3. React DOM HUD — top */
 .hud {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 10;
+  z-index: 2;
   font-size: 13px;
-  opacity: 0.7;
+  line-height: 1.6;
+}
+.hud-ack {
+  opacity: 0.6;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.controls {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.controls button {
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--hud);
+  background: #1a1f26;
+  border: 1px solid #2c333c;
+  border-radius: 6px;
+}
+.controls button:hover {
+  background: #232a33;
 }
