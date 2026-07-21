@@ -1,13 +1,20 @@
 class_name Board
 extends Node2D
 ## Owns the sheet: spawns bubble entities of mixed kinds, maps clicks to cells,
-## tracks which entity occupies each cell. Bubble visuals (ColorRect) are
-## parented to this Board (a CanvasItem) and referenced via entity meta("rect").
+## tracks which entity occupies each cell. Bubble visuals are a single MultiMesh
+## (BubbleField) — each bubble is an instance slot, referenced via entity meta("slot").
 
 var _by_cell := {}   # Vector2i(col,row) -> Entity
 var _rng := RandomNumberGenerator.new()
 var cols := Config.GRID_BASE_COLS   # current sheet dims, set per spawn_sheet
 var rows := Config.GRID_BASE_ROWS
+var _field: BubbleField = null   # one draw call for all bubble visuals
+
+
+func _ready() -> void:
+	_field = BubbleField.new()
+	_field.name = "BubbleField"
+	add_child(_field)
 
 
 ## World-space center of the current grid (for camera + pop-point mapping).
@@ -21,11 +28,10 @@ func grid_size() -> Vector2:
 
 
 func clear_sheet() -> void:
-	for e in _by_cell.values():
-		var view = e.get_meta("view", null)
-		if view and is_instance_valid(view):
-			view.queue_free()
 	_by_cell.clear()
+	# Hide every instance and reclaim all slots (also drops any still-fading pops).
+	if _field:
+		_field.clear()
 
 
 func cell_center(col: int, row: int) -> Vector2:
@@ -60,10 +66,35 @@ func entity_at(cell: Vector2i) -> Entity:
 	return _by_cell.get(cell, null)
 
 
-## Erase every cell a popped bubble covered (1 for most, w*h for a boss).
-func remove_cell(cell: C_Cell) -> void:
-	for p in footprint_cells(Vector2i(cell.col, cell.row), cell.w, cell.h):
-		_by_cell.erase(p)
+## Apply one hit to a bubble: chip hp, pop at 0, else darken for feedback.
+## Returns true if it popped. No-op on already-popped bubbles (so a spread that
+## overlaps a multi-cell boss chips it once, not once per covered cell).
+func hit(e: Entity) -> bool:
+	if e == null or e.get_component(C_Popped) != null:
+		return false
+	var b := e.get_component(C_Bubble) as C_Bubble
+	if b == null:
+		return false
+	b.hp -= 1
+	if b.hp <= 0:
+		e.add_component(C_Popped.new())
+		return true
+	# Partial hit: darken + update the health bar for multi-hit bubbles.
+	_field.chip(e.get_meta("slot", -1), b.hp, b.max_hp)
+	return false
+
+
+## Atomic removal: the single exit for any bubble. Frees its cells, pops its visual
+## slot (expand + fade in the shader), and removes the entity — all together, so
+## occupancy, logic, and visuals can never desync (no clickable ghosts).
+func despawn(e: Entity) -> void:
+	var cell := e.get_component(C_Cell) as C_Cell
+	if cell:
+		for p in footprint_cells(Vector2i(cell.col, cell.row), cell.w, cell.h):
+			_by_cell.erase(p)
+	_field.pop(e.get_meta("slot", -1))
+	e.set_meta("slot", -1)   # the slot is animating out — no longer this bubble's
+	ECS.world.remove_entity(e)
 
 
 func is_empty() -> bool:
@@ -128,6 +159,7 @@ func _spawn_bubble(world: World, origin: Vector2i, id: String, def: Dictionary) 
 
 	var bubble := C_Bubble.new()
 	bubble.hp = def.hp
+	bubble.max_hp = def.hp
 	e.add_component(bubble)
 
 	var cell := C_Cell.new()
@@ -145,12 +177,14 @@ func _spawn_bubble(world: World, origin: Vector2i, id: String, def: Dictionary) 
 	if def.mine:
 		e.add_component(C_Mine.new())
 
-	var view := BubbleView.new()
-	view.position = region_center(origin.x, origin.y, def.w, def.h)
-	view.color = def.color
-	view.set_span(def.w, def.h)
-	add_child(view)
-	e.set_meta("view", view)
+	# Same span rule the old BubbleView used: 1x1 keeps the default radius; a
+	# multi-cell bubble fills its region's shortest side (with a small gap).
+	var radius := Config.BUBBLE_RADIUS
+	if def.w > 1 or def.h > 1:
+		radius = min(def.w, def.h) * Config.CELL * 0.5 * 0.9
+	var pos := region_center(origin.x, origin.y, def.w, def.h)
+	var slot := _field.acquire(pos, def.color, radius, def.hp)
+	e.set_meta("slot", slot)
 
 	world.add_entity(e)
 	# Register the entity under every cell it covers, so a click on any hits it.

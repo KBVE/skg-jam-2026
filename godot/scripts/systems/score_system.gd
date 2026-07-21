@@ -30,17 +30,15 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 			_flood_chain(entity)
 
 		var cell := entity.get_component(C_Cell) as C_Cell
-		var screen := Vector2.ZERO
-		if cell and board:
-			board.remove_cell(cell)
-			screen = _screen_pos(cell)
-
-		var view = entity.get_meta("view", null)
-		if view and is_instance_valid(view):
-			_pop_tween(view)
+		var screen := _screen_pos(cell) if cell else Vector2.ZERO
 
 		JsBridge.emit_event("game:pop", {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
-		ECS.world.remove_entity(entity)
+
+		# Single atomic exit: frees cells, animates the view, removes the entity.
+		if board:
+			board.despawn(entity)
+		else:
+			ECS.world.remove_entity(entity)
 
 
 ## Tag every bubble in the chain bubble's row + column as popped.
@@ -48,9 +46,11 @@ func _flood_chain(entity: Entity) -> void:
 	var cell := entity.get_component(C_Cell) as C_Cell
 	if cell == null or board == null:
 		return
+	var seen := {}   # dedup: a multi-cell boss appears under several row/col cells
 	for other in board.cross_of(Vector2i(cell.col, cell.row)):
-		if other.get_component(C_Popped) == null:
-			other.add_component(C_Popped.new())
+		if not seen.has(other):
+			seen[other] = true
+			board.hit(other)   # chip hp (multi-hit bugs survive a single flood)
 
 
 ## Cell -> DOM/screen pixel (Godot canvas == Phaser overlay == full window).
@@ -62,12 +62,3 @@ func _screen_pos(cell: C_Cell) -> Vector2:
 	var zoom := camera.zoom if camera else Vector2.ONE
 	var cam := camera.position if camera else Vector2.ZERO
 	return (world - cam) * zoom + vp * 0.5
-
-
-## Scale-up + fade, then free the visual (Node2D scales from its center origin).
-func _pop_tween(view: Node2D) -> void:
-	var tw := view.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(view, "scale", Vector2(1.5, 1.5), 0.16)
-	tw.tween_property(view, "modulate:a", 0.0, 0.16)
-	tw.chain().tween_callback(view.queue_free)

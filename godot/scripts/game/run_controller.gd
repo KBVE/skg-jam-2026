@@ -68,6 +68,9 @@ func _ready() -> void:
 ## Center + zoom the camera so the whole current grid fits the viewport, never
 ## zooming in past 1:1 (small grids render at base size, like the original 8x6).
 func _fit_camera() -> void:
+	# Guarantee this camera drives the viewport, so get_global_mouse_position()
+	# (click -> cell mapping) uses its center+zoom transform, not a fallback.
+	_camera.make_current()
 	_camera.position = _board.grid_center()
 	var gsize := _board.grid_size()
 	var vp := get_viewport().get_visible_rect().size
@@ -144,46 +147,47 @@ func _unhandled_input(event: InputEvent) -> void:
 		if cell.x < 0:
 			return
 		var e := _board.entity_at(cell)
-		if e == null:
-			return
-		var bubble := e.get_component(C_Bubble) as C_Bubble
-		bubble.hp -= 1
-		if bubble.hp <= 0:
-			e.add_component(C_Popped.new())
-			# Power-up spread applies to player clicks only (not auto/spread pops),
-			# so area/ricochet don't chain-react the whole sheet.
+		# hit() chips hp (darkens survivors, pops at 0). Spread only when the
+		# clicked bubble actually pops, so area/ricochet don't fire on a chip.
+		if _board.hit(e):
 			_apply_spread(cell)
-		else:
-			# Tough bubble survived a hit — darken it for feedback.
-			var view = e.get_meta("view", null)
-			if view and is_instance_valid(view):
-				view.darken()
 
 
 ## Area (Chebyshev radius) + ricochet (N nearest) spread from a clicked cell.
+## Each spread chips hp once per bug (dedup by entity), so a multi-cell boss
+## takes one hit per blast, not one per covered cell.
 func _apply_spread(cell: Vector2i) -> void:
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
 
 	if lo.area > 0:
+		var targets := {}   # entity -> true (dedup; a boss covers many cells)
 		for dr in range(-lo.area, lo.area + 1):
 			for dc in range(-lo.area, lo.area + 1):
 				if dr == 0 and dc == 0:
 					continue
 				var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
 				# Never spread onto mines — draining the timer is player-click-only.
-				if n != null and n.get_component(C_Popped) == null and n.get_component(C_Mine) == null:
-					n.add_component(C_Popped.new())
+				if n != null and n.get_component(C_Mine) == null:
+					targets[n] = true
+		for n in targets:
+			_board.hit(n)
 
 	if lo.ricochet > 0:
 		var here := Vector2(cell.x, cell.y)
-		var cands := []
+		var nearest := {}   # entity -> min distance across its cells
 		for c in _board._by_cell.keys():
 			var ce: Entity = _board._by_cell[c]
-			if ce.get_component(C_Popped) == null and ce.get_component(C_Mine) == null:
-				cands.append([Vector2(c.x, c.y).distance_to(here), ce])
+			if ce.get_component(C_Mine) != null or ce.get_component(C_Popped) != null:
+				continue
+			var d: float = Vector2(c.x, c.y).distance_to(here)
+			if not nearest.has(ce) or d < nearest[ce]:
+				nearest[ce] = d
+		var cands := []
+		for ce in nearest:
+			cands.append([nearest[ce], ce])
 		cands.sort_custom(func(a, b): return a[0] < b[0])
 		for i in min(lo.ricochet, cands.size()):
-			cands[i][1].add_component(C_Popped.new())
+			_board.hit(cands[i][1])
 
 
 func _process(delta: float) -> void:
