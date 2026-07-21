@@ -65,6 +65,38 @@ body,
   color: #f87171;
 }
 
+/* Floating "+N" score popups (React layer) */
+.pop-points {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.pop-point {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  animation: pop-rise 0.7s ease-out forwards;
+}
+.pop-point.big {
+  font-size: 24px;
+  color: #fbbf24;
+}
+@keyframes pop-rise {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -150%);
+  }
+}
+
 /* 3. React HUD — top. The container ignores pointer; interactive bits opt in. */
 .hud {
   position: absolute;
