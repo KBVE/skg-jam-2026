@@ -39,9 +39,9 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 			board.remove_cell(Vector2i(cell.col, cell.row))
 			screen = _screen_pos(cell)
 
-		var rect = entity.get_meta("rect", null)
-		if rect and is_instance_valid(rect):
-			_pop_tween(rect)
+		var view = entity.get_meta("view", null)
+		if view and is_instance_valid(view):
+			_pop_tween(view)
 
 		JsBridge.emit_event("game:pop", {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
 		ECS.world.remove_entity(entity)
@@ -68,11 +68,10 @@ func _screen_pos(cell: C_Cell) -> Vector2:
 	return world - cam + vp * 0.5
 
 
-## Scale-up + fade, then free the visual.
-func _pop_tween(rect: ColorRect) -> void:
-	rect.pivot_offset = rect.size * 0.5
-	var tw := rect.create_tween()
+## Scale-up + fade, then free the visual (Node2D scales from its center origin).
+func _pop_tween(view: Node2D) -> void:
+	var tw := view.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(rect, "scale", Vector2(1.5, 1.5), 0.16)
-	tw.tween_property(rect, "modulate:a", 0.0, 0.16)
-	tw.chain().tween_callback(rect.queue_free)
+	tw.tween_property(view, "scale", Vector2(1.5, 1.5), 0.16)
+	tw.tween_property(view, "modulate:a", 0.0, 0.16)
+	tw.chain().tween_callback(view.queue_free)

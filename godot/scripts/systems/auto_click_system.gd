@@ -25,9 +25,10 @@ func process(entities: Array[Entity], _components: Array, delta: float) -> void:
 
 
 func _pop_random() -> void:
-	if board == null or board.is_empty():
+	if board == null:
 		return
-	var keys := board._by_cell.keys()
-	var e: Entity = board._by_cell[keys[randi() % keys.size()]]
-	if e.get_component(C_Popped) == null:
-		e.add_component(C_Popped.new())
+	# Never auto-pop mines — that would drain the timer without player intent.
+	var cands := board.poppable_entities()
+	if cands.is_empty():
+		return
+	cands[randi() % cands.size()].add_component(C_Popped.new())
