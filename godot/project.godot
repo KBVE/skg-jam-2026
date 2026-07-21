@@ -12,6 +12,10 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
+; GECS singleton. Added manually (not via the editor plugin) so the headless
+; export includes it. If you enable the GECS editor plugin later, remove this
+; line — the plugin registers its own ECS autoload and would conflict.
+ECS="*res://addons/gecs/ecs/ecs.gd"
 JsBridge="*res://scripts/JsBridge.gd"
 
 [rendering]

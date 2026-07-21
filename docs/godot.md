@@ -84,6 +84,26 @@ npm run dev           # or: npm run build && npm run preview
   regenerate with `build:godot`).
 - Editor cache `godot/.godot/` is gitignored too.
 
+## GECS (Entity Component System)
+
+The Godot game logic runs on [GECS](https://github.com/csprance/gecs) (v9.1.0),
+**vendored** at [`godot/addons/gecs/`](../godot/addons/gecs/) (copied from the repo's
+`addons/gecs/` subtree — not a git submodule, so the export is self-contained).
+
+- **Autoload:** `ECS` is registered manually in [`project.godot`](../godot/project.godot)
+  (`ECS="*res://addons/gecs/ecs/ecs.gd"`). The GECS **editor plugin is intentionally not
+  enabled** — the harness only needs the autoload + globally-registered class names at
+  runtime. If you enable the editor plugin later (for its debugger panel), **remove the
+  manual `ECS` autoload line** — the plugin registers its own and they conflict.
+- **Shape of the demo:** the cube is built in code as an `Entity` with a `C_Spin`
+  component ([`scripts/components/c_spin.gd`](../godot/scripts/components/c_spin.gd)) and a
+  `Mesh` child; `SpinSystem` ([`scripts/systems/spin_system.gd`](../godot/scripts/systems/spin_system.gd))
+  rotates it. `Main.gd` runs `ECS.process(delta)` each frame.
+- **Bridge ↔ ECS:** `set_speed` mutates `C_Spin.speed`; the heartbeat reports the live
+  entity count. So the JS → Godot commands drive ECS data directly.
+- **Gotcha:** `ECS.world`'s setter auto-parents the World under a node named `Root` unless
+  it is already in the tree — so `Main.gd` `add_child(world)` **before** `ECS.world = world`.
+
 ## Verified
 
 `npm run build` clean. Headless Chrome (SwiftShader, COEP-compatible): `crossOriginIsolated
