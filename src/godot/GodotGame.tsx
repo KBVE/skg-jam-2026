@@ -19,12 +19,15 @@ function loadScript(src: string): Promise<void> {
 }
 
 // Config mirrors the exported index.html's GODOT_CONFIG (threaded pools included).
-// `executable`/`mainPack` are ABSOLUTE (/godot/...): Godot's loader normally
+// `executable`/`mainPack` are RELATIVE (godot/...): Godot's loader normally
 // derives its base from document.currentScript.src, but that is null for a
-// dynamically-injected async <script>, so it would otherwise fetch /index.wasm.
+// dynamically-injected async <script>, so it would otherwise fetch index.wasm
+// from the wrong place. Relative paths resolve against the document base URL,
+// which works both at the local origin root and under itch.io's CDN subpath
+// (absolute /godot/... would 403 there, hitting the CDN root instead).
 const ENGINE_CONFIG = {
-  executable: '/godot/index',
-  mainPack: '/godot/index.pck',
+  executable: 'godot/index',
+  mainPack: 'godot/index.pck',
   canvasResizePolicy: 2,
   ensureCrossOriginIsolationHeaders: true,
   experimentalVK: false,
@@ -53,7 +56,7 @@ export function GodotGame() {
     // NOTE: no `cancelled` flag here on purpose. `startedRef` already guarantees
     // a single boot across StrictMode's mount→cleanup→mount cycle; cancelling on
     // the interim cleanup would abort the only boot before startGame is called.
-    loadScript('/godot/index.js')
+    loadScript('godot/index.js')
       .then(async () => {
         const Engine = window.Engine;
         if (!Engine) throw new Error('Godot Engine loader not found on window');

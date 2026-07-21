@@ -11,6 +11,9 @@ const crossOriginIsolation = {
 
 // https://vite.dev/config/
 export default defineConfig({
+  // itch.io serves the game from a CDN subpath, so emit relative asset URLs
+  // ("./assets/...") instead of absolute ("/assets/...") which 403 there.
+  base: './',
   plugins: [react()],
   server: {
     port: 5173,
