@@ -54,6 +54,9 @@ func spawn_sheet(world: World, _sheet_index: int) -> void:
 			e.add_component(cell)
 
 			var rect := ColorRect.new()
+			# Let clicks fall through to RunController._unhandled_input (Controls
+			# default to MOUSE_FILTER_STOP, which would eat the pop click).
+			rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			rect.color = Color(0.22, 0.74, 0.97)
 			rect.size = Vector2(Config.BUBBLE_RADIUS * 2.0, Config.BUBBLE_RADIUS * 2.0)
 			rect.position = cell_center(c, r) - Vector2(Config.BUBBLE_RADIUS, Config.BUBBLE_RADIUS)

@@ -1,0 +1,54 @@
+import { useState } from 'react';
+import { useBusEvent } from '../bus';
+import { godotSend } from '../godot/bridge';
+import { BASE_TIME } from '../game/constants';
+import type {
+  GameState,
+  StatePayload,
+  ScorePayload,
+  TimePayload,
+  RunOverPayload,
+} from '../game/events';
+
+export function Hud() {
+  const [state, setState] = useState<GameState>('IDLE');
+  const [score, setScore] = useState(0);
+  const [time, setTime] = useState(BASE_TIME);
+  const [last, setLast] = useState<RunOverPayload | null>(null);
+
+  useBusEvent<StatePayload>('game:state', (p) => setState(p.state));
+  useBusEvent<ScorePayload>('game:score', (p) => setScore(p.score));
+  useBusEvent<TimePayload>('game:time', (p) => setTime(p.remaining));
+  useBusEvent<RunOverPayload>('game:run_over', (p) => setLast(p));
+
+  return (
+    <div className="hud">
+      {state === 'PLAYING' && (
+        <div className="hud-play">
+          <div className="hud-time">
+            <div
+              className="hud-time-bar"
+              style={{ width: `${Math.max(0, (time / BASE_TIME) * 100)}%` }}
+            />
+          </div>
+          <div className="hud-score">{score}</div>
+        </div>
+      )}
+
+      {state === 'IDLE' && (
+        <div className="panel">
+          <h1>Bubble Roguelite</h1>
+          <button onClick={() => godotSend('start_run', {})}>Start</button>
+        </div>
+      )}
+
+      {state === 'GAME_OVER' && (
+        <div className="panel">
+          <h1>Time!</h1>
+          <p>Score: {last?.score ?? score}</p>
+          <button onClick={() => godotSend('restart', {})}>Play again</button>
+        </div>
+      )}
+    </div>
+  );
+}

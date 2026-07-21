@@ -51,6 +51,8 @@ func handle_command(cmd: String, _payload: Dictionary) -> void:
 	match cmd:
 		"start_run", "restart":
 			_start_run()
+		"debug_pop":
+			_debug_pop(int(_payload.get("n", 1)))
 
 
 func _start_run() -> void:
@@ -63,6 +65,20 @@ func _start_run() -> void:
 	_set_state(State.PLAYING)
 	_emit_score()
 	_emit_time()
+
+
+## Dev/test helper: tag N remaining bubbles as popped (ScoreSystem handles them).
+func _debug_pop(n: int) -> void:
+	if _state != State.PLAYING:
+		return
+	var popped := 0
+	for cell in _board._by_cell.keys():
+		if popped >= n:
+			break
+		var e: Entity = _board._by_cell[cell]
+		if e.get_component(C_Popped) == null:
+			e.add_component(C_Popped.new())
+			popped += 1
 
 
 func _unhandled_input(event: InputEvent) -> void:
