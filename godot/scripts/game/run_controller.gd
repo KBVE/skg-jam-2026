@@ -68,14 +68,18 @@ func _set_state(s: int) -> void:
 func handle_command(cmd: String, _payload: Dictionary) -> void:
 	match cmd:
 		"start_run", "restart":
-			_start_run()
+			_start_run(_payload)
 		"pick_upgrade":
 			_pick_upgrade(str(_payload.get("id", "")))
 		"debug_pop":
 			_debug_pop(int(_payload.get("n", 1)))
+		"debug_end":
+			if _state == State.PLAYING or _state == State.SHEET_CLEAR:
+				_end_run()
 
 
-func _start_run() -> void:
+## payload = loadout from meta: { baseTime, ricochet, area, autoclick }.
+func _start_run(payload: Dictionary) -> void:
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
 	stats.score = 0
 	stats.pops = 0
@@ -83,12 +87,12 @@ func _start_run() -> void:
 	_bonus_system.reset()
 
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
-	lo.ricochet = 0
-	lo.area = 0
-	lo.autoclick = 0
+	lo.ricochet = int(payload.get("ricochet", 0))
+	lo.area = int(payload.get("area", 0))
+	lo.autoclick = int(payload.get("autoclick", 0))
 
 	_sheet = 0
-	_time_left = Config.BASE_TIME
+	_time_left = float(payload.get("baseTime", Config.BASE_TIME))
 	_board.spawn_sheet(_world, _sheet)
 	_set_state(State.PLAYING)
 	_emit_score()

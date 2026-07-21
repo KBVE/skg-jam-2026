@@ -3,6 +3,8 @@ import { useBusEvent } from '../bus';
 import { godotSend } from '../godot/bridge';
 import { BASE_TIME } from '../game/constants';
 import { POWERUPS } from '../meta/catalog';
+import { buildLoadout, bank } from '../meta/store';
+import { Shop } from './Shop';
 import type {
   GameState,
   StatePayload,
@@ -22,7 +24,10 @@ export function Hud() {
   useBusEvent<StatePayload>('game:state', (p) => setState(p.state));
   useBusEvent<ScorePayload>('game:score', (p) => setScore(p.score));
   useBusEvent<TimePayload>('game:time', (p) => setTime(p.remaining));
-  useBusEvent<RunOverPayload>('game:run_over', (p) => setLast(p));
+  useBusEvent<RunOverPayload>('game:run_over', (p) => {
+    setLast(p);
+    bank(p.currencyEarned);
+  });
   useBusEvent<LoadoutPayload>('game:loadout', (p) => setLoadout(p));
 
   return (
@@ -47,15 +52,19 @@ export function Hud() {
       {state === 'IDLE' && (
         <div className="panel">
           <h1>Bubble Roguelite</h1>
-          <button onClick={() => godotSend('start_run', {})}>Start</button>
+          <Shop />
+          <button onClick={() => godotSend('start_run', buildLoadout())}>Start</button>
         </div>
       )}
 
       {state === 'GAME_OVER' && (
         <div className="panel">
           <h1>Time!</h1>
-          <p>Score: {last?.score ?? score}</p>
-          <button onClick={() => godotSend('restart', {})}>Play again</button>
+          <p>
+            Score: {last?.score ?? score} · earned 🫧 {last?.currencyEarned ?? 0}
+          </p>
+          <Shop />
+          <button onClick={() => godotSend('restart', buildLoadout())}>Play again</button>
         </div>
       )}
     </div>
