@@ -34,14 +34,16 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 			_flood_chain(entity)
 
 		var cell := entity.get_component(C_Cell) as C_Cell
+		var screen := Vector2.ZERO
 		if cell and board:
 			board.remove_cell(Vector2i(cell.col, cell.row))
+			screen = _screen_pos(cell)
 
 		var rect = entity.get_meta("rect", null)
 		if rect and is_instance_valid(rect):
-			rect.queue_free()
+			_pop_tween(rect)
 
-		JsBridge.emit_event("game:pop", {"kind": kind, "points": points})
+		JsBridge.emit_event("game:pop", {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
 		ECS.world.remove_entity(entity)
 
 
@@ -53,3 +55,24 @@ func _flood_chain(entity: Entity) -> void:
 	for other in board.cross_of(Vector2i(cell.col, cell.row)):
 		if other.get_component(C_Popped) == null:
 			other.add_component(C_Popped.new())
+
+
+## Cell -> DOM/screen pixel (Godot canvas == Phaser overlay == full window).
+func _screen_pos(cell: C_Cell) -> Vector2:
+	var world := Vector2(cell.col * Config.CELL, cell.row * Config.CELL)
+	var cam := Vector2(
+		(Config.GRID_COLS - 1) * Config.CELL * 0.5,
+		(Config.GRID_ROWS - 1) * Config.CELL * 0.5,
+	)
+	var vp := get_viewport().get_visible_rect().size
+	return world - cam + vp * 0.5
+
+
+## Scale-up + fade, then free the visual.
+func _pop_tween(rect: ColorRect) -> void:
+	rect.pivot_offset = rect.size * 0.5
+	var tw := rect.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(rect, "scale", Vector2(1.5, 1.5), 0.16)
+	tw.tween_property(rect, "modulate:a", 0.0, 0.16)
+	tw.chain().tween_callback(rect.queue_free)

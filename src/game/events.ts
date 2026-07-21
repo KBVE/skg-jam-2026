@@ -10,7 +10,10 @@ export interface TimePayload {
   remaining: number;
 }
 export interface PopPayload {
+  kind: string;
   points: number;
+  x: number;
+  y: number;
 }
 export interface RunOverPayload {
   score: number;

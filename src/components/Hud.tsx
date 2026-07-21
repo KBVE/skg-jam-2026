@@ -4,8 +4,10 @@ import { godotSend } from '../godot/bridge';
 import { BASE_TIME } from '../game/constants';
 import { POWERUPS } from '../meta/catalog';
 import { buildLoadout, bank } from '../meta/store';
+import { playPop } from '../game/sfx';
 import { Shop } from './Shop';
 import type {
+  PopPayload,
   GameState,
   StatePayload,
   ScorePayload,
@@ -29,6 +31,7 @@ export function Hud() {
     bank(p.currencyEarned);
   });
   useBusEvent<LoadoutPayload>('game:loadout', (p) => setLoadout(p));
+  useBusEvent<PopPayload>('game:pop', (p) => playPop(p.points));
 
   return (
     <div className="hud">
@@ -40,7 +43,7 @@ export function Hud() {
               style={{ width: `${Math.min(100, Math.max(0, (time / BASE_TIME) * 100))}%` }}
             />
           </div>
-          <div className="hud-score">{score}</div>
+          <div className="hud-score" key={score}>{score}</div>
           <div className="hud-loadout">
             {loadout.ricochet > 0 && <span>{POWERUPS.P_RICOCHET.icon}{loadout.ricochet}</span>}
             {loadout.area > 0 && <span>{POWERUPS.P_AREA.icon}{loadout.area}</span>}
