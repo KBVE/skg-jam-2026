@@ -24,13 +24,12 @@ body,
   height: 100vh;
 }
 
-/* Shared full-bleed layer */
 .layer {
   position: absolute;
   inset: 0;
 }
 
-/* 1. Godot game — bottom */
+/* 1. Godot game — bottom, receives clicks natively */
 .godot-layer {
   z-index: 0;
 }
@@ -41,9 +40,10 @@ body,
   outline: none;
 }
 
-/* 2. Phaser transparent UI overlay — middle */
+/* 2. Phaser FX overlay — transparent, never eats input */
 .phaser-overlay {
   z-index: 1;
+  pointer-events: none;
 }
 .phaser-overlay canvas {
   background: transparent !important;
@@ -65,37 +65,199 @@ body,
   color: #f87171;
 }
 
-/* 3. React DOM HUD — top */
+/* 3. React HUD — top. The container ignores pointer; interactive bits opt in. */
 .hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hud-play {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 2;
-  font-size: 13px;
-  line-height: 1.6;
-}
-.hud-ack {
-  opacity: 0.6;
-  max-width: 60vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.controls {
-  margin-top: 8px;
+  right: 12px;
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
-.controls button {
-  cursor: pointer;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--hud);
+.hud-time {
+  flex: 1;
+  height: 14px;
   background: #1a1f26;
-  border: 1px solid #2c333c;
-  border-radius: 6px;
+  border-radius: 7px;
+  overflow: hidden;
 }
-.controls button:hover {
-  background: #232a33;
+.hud-time-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #22c55e);
+  transition: width 0.1s linear;
+}
+.hud-score {
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 700;
+  min-width: 3ch;
+  text-align: right;
+  animation: score-bump 0.12s ease-out;
+}
+@keyframes score-bump {
+  0% { transform: scale(1.35); color: #7dd3fc; }
+  100% { transform: scale(1); color: var(--hud); }
+}
+
+.panel {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(11, 13, 16, 0.72);
+  text-align: center;
+}
+.panel h1 {
+  margin: 0;
+  font-size: 32px;
+}
+.panel p {
+  margin: 0;
+  opacity: 0.8;
+}
+/* Direct-child only so it doesn't restyle nested shop-item buttons. */
+.panel > button {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 10px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0b0d10;
+  background: #38bdf8;
+  border: none;
+  border-radius: 8px;
+}
+.panel > button:hover {
+  background: #5cc9fa;
+}
+
+.hud-loadout {
+  display: flex;
+  gap: 10px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Upgrade cards overlay (SHEET_CLEAR) */
+.cards-overlay {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(11, 13, 16, 0.8);
+}
+.cards-overlay h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.card {
+  pointer-events: auto;
+  cursor: pointer;
+  width: 160px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--hud);
+  background: #161b22;
+  border: 1px solid #2c333c;
+  border-radius: 12px;
+  transition: transform 0.08s ease, border-color 0.08s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: #38bdf8;
+}
+.card-icon {
+  font-size: 40px;
+}
+.card-name {
+  font-size: 17px;
+  font-weight: 700;
+}
+.card-desc {
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* Meta shop (IDLE / GAME_OVER) */
+.shop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.shop-currency {
+  font-size: 20px;
+  font-weight: 700;
+}
+.shop-items {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 620px;
+}
+.shop-item {
+  pointer-events: auto;
+  cursor: pointer;
+  width: 140px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--hud);
+  background: #161b22;
+  border: 1px solid #2c333c;
+  border-radius: 10px;
+}
+.shop-item:hover:not(:disabled) {
+  border-color: #38bdf8;
+}
+.shop-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.shop-icon {
+  font-size: 26px;
+}
+.shop-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+.shop-desc {
+  font-size: 11px;
+  opacity: 0.7;
+  text-align: center;
+}
+.shop-cost {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7dd3fc;
 }
