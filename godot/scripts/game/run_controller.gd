@@ -15,6 +15,7 @@ var _bonus_system: BonusSystem
 var _autoclick_system: AutoClickSystem
 var _emit_accum := 0.0
 var _clear_delay := 0.0   # counts up once the board is empty, before the overlay shows
+var _pop_count := 0
 
 const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
 const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
@@ -152,13 +153,40 @@ func _unhandled_input(event: InputEvent) -> void:
 			e.add_component(C_Popped.new())
 			# Power-up spread applies to player clicks only (not auto/spread pops),
 			# so area/ricochet don't chain-react the whole sheet.
-			_apply_spread(cell)
+			_pop_count += 1
+			var lo := _loadout.get_component(C_Loadout) as C_Loadout
+			if _pop_count % 3 == 0:
+				_apply_ricochet(lo, cell)
+			if _pop_count % 5 == 0:
+				_apply_area_blast(lo, cell)
 		else:
 			# Tough bubble survived a hit — darken it for feedback.
 			var view = e.get_meta("view", null)
 			if view and is_instance_valid(view):
 				view.darken()
 
+func _apply_area_blast(lo: C_Loadout, cell: Vector2i) -> void:
+	if lo.area > 0:
+		for dr in range(-lo.area, lo.area + 1):
+			for dc in range(-lo.area, lo.area + 1):
+				if dr == 0 and dc == 0:
+					continue
+				var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
+				# Never spread onto mines — draining the timer is player-click-only.
+				if n != null and n.get_component(C_Popped) == null and n.get_component(C_Mine) == null:
+					n.add_component(C_Popped.new())
+
+func _apply_ricochet(lo: C_Loadout, cell: Vector2i) -> void:
+	if lo.ricochet > 0:
+		var here := Vector2(cell.x, cell.y)
+		var cands := []
+		for c in _board._by_cell.keys():
+			var ce: Entity = _board._by_cell[c]
+			if ce.get_component(C_Popped) == null and ce.get_component(C_Mine) == null:
+				cands.append([Vector2(c.x, c.y).distance_to(here), ce])
+		cands.sort_custom(func(a, b): return a[0] < b[0])
+		for i in min(lo.ricochet, cands.size()):
+			cands[i][1].add_component(C_Popped.new())
 
 ## Area (Chebyshev radius) + ricochet (N nearest) spread from a clicked cell.
 func _apply_spread(cell: Vector2i) -> void:
