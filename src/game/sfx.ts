@@ -2,7 +2,32 @@
 let ctx: AudioContext | null = null;
 let last = 0;
 
+const MUTE_KEY = 'bubble_muted';
+let muted = (() => {
+  try {
+    return localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+})();
+
+export function isMuted(): boolean {
+  return muted;
+}
+
+/** Toggle mute, persist to localStorage, return the new state. */
+export function toggleMute(): boolean {
+  muted = !muted;
+  try {
+    localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+  } catch {
+    /* storage unavailable — in-memory only */
+  }
+  return muted;
+}
+
 export function playPop(points = 1): void {
+  if (muted) return;
   const now = performance.now();
   if (now - last < 35) return; // throttle bursts
   last = now;

@@ -14,6 +14,9 @@ const SCORE_TOUGH := 3
 const SCORE_GOLD := 10
 const TOUGH_HP := 2
 
+# Power-up caps
+const AREA_MAX := 2          # max Chebyshev pop radius (5x5); board is 8x6, so higher clears whole sheet in one click
+
 # Kind effects
 const CLOCK_BONUS := 2.0     # +seconds
 const MINE_PENALTY := 2.0    # -seconds

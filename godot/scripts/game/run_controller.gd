@@ -14,7 +14,9 @@ var _score_system: ScoreSystem
 var _bonus_system: BonusSystem
 var _autoclick_system: AutoClickSystem
 var _emit_accum := 0.0
+var _clear_delay := 0.0   # counts up once the board is empty, before the overlay shows
 
+const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
 const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
 
 @onready var _camera: Camera2D = $Camera2D
@@ -146,7 +148,8 @@ func _apply_spread(cell: Vector2i) -> void:
 				if dr == 0 and dc == 0:
 					continue
 				var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
-				if n != null and n.get_component(C_Popped) == null:
+				# Never spread onto mines — draining the timer is player-click-only.
+				if n != null and n.get_component(C_Popped) == null and n.get_component(C_Mine) == null:
 					n.add_component(C_Popped.new())
 
 	if lo.ricochet > 0:
@@ -154,7 +157,7 @@ func _apply_spread(cell: Vector2i) -> void:
 		var cands := []
 		for c in _board._by_cell.keys():
 			var ce: Entity = _board._by_cell[c]
-			if ce.get_component(C_Popped) == null:
+			if ce.get_component(C_Popped) == null and ce.get_component(C_Mine) == null:
 				cands.append([Vector2(c.x, c.y).distance_to(here), ce])
 		cands.sort_custom(func(a, b): return a[0] < b[0])
 		for i in min(lo.ricochet, cands.size()):
@@ -175,9 +178,13 @@ func _process(delta: float) -> void:
 
 	# Sheet cleared once no non-mine bubbles remain (leftover mines are dropped
 	# on the next spawn, so the player can finish without eating penalties).
+	# Hold briefly so pop animations finish before the overlay covers the board.
 	if not _board.has_poppable():
-		_enter_sheet_clear()
+		_clear_delay += delta
+		if _clear_delay >= SHEET_CLEAR_DELAY:
+			_enter_sheet_clear()
 		return
+	_clear_delay = 0.0
 
 	_time_left -= delta
 	_emit_accum += delta
@@ -204,7 +211,7 @@ func _pick_upgrade(id: String) -> void:
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
 	match id:
 		"P_RICOCHET": lo.ricochet += 1
-		"P_AREA": lo.area += 1
+		"P_AREA": lo.area = min(lo.area + 1, Config.AREA_MAX)
 		"P_AUTOCLICK": lo.autoclick += 1
 	_emit_loadout()
 	_sheet += 1
