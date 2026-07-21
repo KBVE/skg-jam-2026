@@ -12,7 +12,8 @@ const GOLD := "gold"
 const CLOCK := "clock"
 const CHAIN := "chain"
 const MINE := "mine"
-const BOSS := "boss"
+const BOSS2 := "boss2"   # 2x2 boss
+const BOSS4 := "boss4"   # 4x4 boss (splits into boss2s on pop)
 
 # color:       bubble fill.
 # points:      score awarded on pop.
@@ -22,6 +23,9 @@ const BOSS := "boss"
 # mine:        excluded from spread/auto/clear; gets a C_Mine marker at spawn.
 # w/h:         footprint in cells (>1 = multi-cell, e.g. a 4x4 boss).
 # weight_base + sheet * weight_ramp = spawn odds (relative weight).
+# min_sheet:   earliest sheet a kind may spawn (optional, default 0). Bosses use it.
+# split:       {kind = "..."} — on pop, fill this bubble's footprint with a grid of
+#              that child kind at half hp (optional, default {}). Boss4 splits to boss2.
 const DEFS := {
 	PLAIN: {color = Color(0.22, 0.74, 0.97), points = 1, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 60.0, weight_ramp = 0.0},
 	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 12.0, weight_ramp = 2.0},
@@ -30,6 +34,9 @@ const DEFS := {
 	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0},
 	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0},
 	MINE:  {color = Color(0.92, 0.28, 0.32), points = 1, hp = 1, time = -2.0, chain = false, mine = true, w = 1, h = 1, weight_base = 3.0, weight_ramp = 2.0},
+	# Bosses: tanky + big score + bonus time. Rare, capped per sheet (see Board.spawn_sheet).
+	BOSS2: {color = Color(0.60, 0.30, 0.85), points = 40, hp = 4, time = 2.0, chain = false, mine = false, w = 2, h = 2, weight_base = 3.0, weight_ramp = 1.5, min_sheet = 2},
+	BOSS4: {color = Color(0.85, 0.20, 0.35), points = 150, hp = 8, time = 4.0, chain = false, mine = false, w = 4, h = 4, weight_base = 1.0, weight_ramp = 1.0, min_sheet = 5, split = {kind = "boss2"}},
 }
 
 
