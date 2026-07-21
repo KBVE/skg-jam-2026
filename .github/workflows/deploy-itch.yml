@@ -9,7 +9,7 @@ on:
 env:
   GODOT_VERSION: 4.7
   GODOT_RELEASE: stable
-  ITCH_TARGET: your-user/your-game
+  ITCH_TARGET: kbve/skg-2026
   ITCH_CHANNEL: html5
 
 concurrency:
