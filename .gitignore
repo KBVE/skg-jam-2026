@@ -4,7 +4,8 @@ dist-ssr
 *.tsbuildinfo
 
 # Godot export output (regenerate with `npm run build:godot`)
-public/godot/
+public/godot/*
+!public/godot/.gitkeep
 
 # Godot editor cache
 godot/.godot/

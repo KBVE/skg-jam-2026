@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:full": "npm run build:godot && vite",
+    "editor": "godot --editor --path godot",
     "build": "tsc -b && vite build",
     "build:godot": "godot --headless --path godot --import && godot --headless --path godot --export-release \"Web\" ../public/godot/index.html",
     "preview": "vite preview",

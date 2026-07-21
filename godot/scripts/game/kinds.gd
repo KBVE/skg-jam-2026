@@ -18,14 +18,15 @@ const MINE := "mine"
 # time:        seconds added on pop (negative = penalty).
 # chain:       popping it also pops its whole row + column.
 # mine:        excluded from spread/auto/clear; gets a C_Mine marker at spawn.
+# w/h:         footprint in cells (>1 = multi-cell, e.g. a 4x4 boss).
 # weight_base + sheet * weight_ramp = spawn odds (relative weight).
 const DEFS := {
-	PLAIN: {color = Color(0.22, 0.74, 0.97), points = 1, hp = 1, time = 0.0, chain = false, mine = false, weight_base = 60.0, weight_ramp = 0.0},
-	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, weight_base = 12.0, weight_ramp = 2.0},
-	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, weight_base = 8.0, weight_ramp = 0.0},
-	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, weight_base = 6.0, weight_ramp = 0.0},
-	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, weight_base = 4.0, weight_ramp = 0.0},
-	MINE:  {color = Color(0.92, 0.28, 0.32), points = 1, hp = 1, time = -2.0, chain = false, mine = true, weight_base = 3.0, weight_ramp = 2.0},
+	PLAIN: {color = Color(0.22, 0.74, 0.97), points = 1, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 60.0, weight_ramp = 0.0},
+	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 12.0, weight_ramp = 2.0},
+	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 8.0, weight_ramp = 0.0},
+	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0},
+	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0},
+	MINE:  {color = Color(0.92, 0.28, 0.32), points = 1, hp = 1, time = -2.0, chain = false, mine = true, w = 1, h = 1, weight_base = 3.0, weight_ramp = 2.0},
 }
 
 

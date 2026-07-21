@@ -25,10 +25,6 @@ const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
 
 func _ready() -> void:
 	JsBridge.register_target(self)
-	_camera.position = Vector2(
-		(Config.GRID_COLS - 1) * Config.CELL * 0.5,
-		(Config.GRID_ROWS - 1) * Config.CELL * 0.5,
-	)
 
 	# World must be in-tree before assigning ECS.world.
 	_world = World.new()
@@ -49,6 +45,7 @@ func _ready() -> void:
 	_score_system = ScoreSystem.new()
 	_score_system.stats_entity = _stats
 	_score_system.board = _board
+	_score_system.camera = _camera
 	_world.add_system(_score_system)
 
 	_autoclick_system = AutoClickSystem.new()
@@ -66,6 +63,17 @@ func _ready() -> void:
 	# game playable standalone.
 	if not OS.has_feature("web"):
 		_start_run({})
+
+
+## Center + zoom the camera so the whole current grid fits the viewport, never
+## zooming in past 1:1 (small grids render at base size, like the original 8x6).
+func _fit_camera() -> void:
+	_camera.position = _board.grid_center()
+	var gsize := _board.grid_size()
+	var vp := get_viewport().get_visible_rect().size
+	var fit: float = min(vp.x / gsize.x, vp.y / gsize.y) * 0.92   # 0.92 = edge padding
+	var z: float = min(1.0, fit)
+	_camera.zoom = Vector2(z, z)
 
 
 func _set_state(s: int) -> void:
@@ -102,6 +110,7 @@ func _start_run(payload: Dictionary) -> void:
 	_sheet = 0
 	_time_left = float(payload.get("baseTime", Config.BASE_TIME))
 	_board.spawn_sheet(_world, _sheet)
+	_fit_camera()
 	_set_state(State.PLAYING)
 	_emit_score()
 	_emit_time()
@@ -229,6 +238,7 @@ func _pick_upgrade(id: String) -> void:
 	_emit_loadout()
 	_sheet += 1
 	_board.spawn_sheet(_world, _sheet)
+	_fit_camera()
 	_set_state(State.PLAYING)
 
 

@@ -5,6 +5,7 @@ extends System
 
 var stats_entity: Entity     # injected by RunController
 var board: Board             # injected by RunController
+var camera: Camera2D         # injected by RunController (for pop-point mapping)
 
 
 func query() -> QueryBuilder:
@@ -31,7 +32,7 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 		var cell := entity.get_component(C_Cell) as C_Cell
 		var screen := Vector2.ZERO
 		if cell and board:
-			board.remove_cell(Vector2i(cell.col, cell.row))
+			board.remove_cell(cell)
 			screen = _screen_pos(cell)
 
 		var view = entity.get_meta("view", null)
@@ -53,14 +54,14 @@ func _flood_chain(entity: Entity) -> void:
 
 
 ## Cell -> DOM/screen pixel (Godot canvas == Phaser overlay == full window).
+## Applies the camera transform (center + zoom-to-fit) so overlay points track
+## the grid at any sheet size.
 func _screen_pos(cell: C_Cell) -> Vector2:
 	var world := Vector2(cell.col * Config.CELL, cell.row * Config.CELL)
-	var cam := Vector2(
-		(Config.GRID_COLS - 1) * Config.CELL * 0.5,
-		(Config.GRID_ROWS - 1) * Config.CELL * 0.5,
-	)
 	var vp := get_viewport().get_visible_rect().size
-	return world - cam + vp * 0.5
+	var zoom := camera.zoom if camera else Vector2.ONE
+	var cam := camera.position if camera else Vector2.ZERO
+	return (world - cam) * zoom + vp * 0.5
 
 
 ## Scale-up + fade, then free the visual (Node2D scales from its center origin).

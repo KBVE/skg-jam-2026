@@ -8,14 +8,25 @@ var color := Color.WHITE:
 		color = value
 		queue_redraw()
 
+var radius := Config.BUBBLE_RADIUS   # grows for multi-cell bubbles (see set_span)
+
 
 func darken() -> void:
 	color = color.darkened(0.22)
 	queue_redraw()
 
 
+## Scale the dome to a w*h footprint. 1x1 keeps the default radius; a boss fills
+## its region (shortest side), leaving a small gap so cells stay readable.
+func set_span(w: int, h: int) -> void:
+	if w <= 1 and h <= 1:
+		return
+	radius = min(w, h) * Config.CELL * 0.5 * 0.9
+	queue_redraw()
+
+
 func _draw() -> void:
-	var r := Config.BUBBLE_RADIUS
+	var r := radius
 	# Base + rim (slightly darker, translucent plastic).
 	draw_circle(Vector2.ZERO, r, Color(color.darkened(0.18), 0.92))
 	# Top-lit dome.
