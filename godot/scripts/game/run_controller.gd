@@ -9,9 +9,13 @@ var _time_left := 0.0
 var _sheet := 0
 var _world: World
 var _stats: Entity
+var _loadout: Entity
 var _score_system: ScoreSystem
 var _bonus_system: BonusSystem
+var _autoclick_system: AutoClickSystem
 var _emit_accum := 0.0
+
+const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _board: Board = $Board
@@ -35,10 +39,20 @@ func _ready() -> void:
 	_stats.add_component(C_RunStats.new())
 	_world.add_entity(_stats)
 
+	_loadout = Entity.new()
+	_loadout.name = "Loadout"
+	_loadout.add_component(C_Loadout.new())
+	_world.add_entity(_loadout)
+
 	_score_system = ScoreSystem.new()
 	_score_system.stats_entity = _stats
 	_score_system.board = _board
 	_world.add_system(_score_system)
+
+	_autoclick_system = AutoClickSystem.new()
+	_autoclick_system.loadout_entity = _loadout
+	_autoclick_system.board = _board
+	_world.add_system(_autoclick_system)
 
 	_bonus_system = BonusSystem.new()
 	_world.add_system(_bonus_system)
@@ -55,6 +69,8 @@ func handle_command(cmd: String, _payload: Dictionary) -> void:
 	match cmd:
 		"start_run", "restart":
 			_start_run()
+		"pick_upgrade":
+			_pick_upgrade(str(_payload.get("id", "")))
 		"debug_pop":
 			_debug_pop(int(_payload.get("n", 1)))
 
@@ -65,12 +81,19 @@ func _start_run() -> void:
 	stats.pops = 0
 	stats.time_delta = 0.0
 	_bonus_system.reset()
+
+	var lo := _loadout.get_component(C_Loadout) as C_Loadout
+	lo.ricochet = 0
+	lo.area = 0
+	lo.autoclick = 0
+
 	_sheet = 0
 	_time_left = Config.BASE_TIME
 	_board.spawn_sheet(_world, _sheet)
 	_set_state(State.PLAYING)
 	_emit_score()
 	_emit_time()
+	_emit_loadout()
 
 
 ## Dev/test helper: tag N remaining bubbles as popped (ScoreSystem handles them).
@@ -101,11 +124,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		bubble.hp -= 1
 		if bubble.hp <= 0:
 			e.add_component(C_Popped.new())
+			# Power-up spread applies to player clicks only (not auto/spread pops),
+			# so area/ricochet don't chain-react the whole sheet.
+			_apply_spread(cell)
 		else:
 			# Tough bubble survived a hit — darken it for feedback.
 			var rect = e.get_meta("rect", null)
 			if rect and is_instance_valid(rect):
 				rect.color = rect.color.darkened(0.25)
+
+
+## Area (Chebyshev radius) + ricochet (N nearest) spread from a clicked cell.
+func _apply_spread(cell: Vector2i) -> void:
+	var lo := _loadout.get_component(C_Loadout) as C_Loadout
+
+	if lo.area > 0:
+		for dr in range(-lo.area, lo.area + 1):
+			for dc in range(-lo.area, lo.area + 1):
+				if dr == 0 and dc == 0:
+					continue
+				var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
+				if n != null and n.get_component(C_Popped) == null:
+					n.add_component(C_Popped.new())
+
+	if lo.ricochet > 0:
+		var here := Vector2(cell.x, cell.y)
+		var cands := []
+		for c in _board._by_cell.keys():
+			var ce: Entity = _board._by_cell[c]
+			if ce.get_component(C_Popped) == null:
+				cands.append([Vector2(c.x, c.y).distance_to(here), ce])
+		cands.sort_custom(func(a, b): return a[0] < b[0])
+		for i in min(lo.ricochet, cands.size()):
+			cands[i][1].add_component(C_Popped.new())
 
 
 func _process(delta: float) -> void:
@@ -120,10 +171,10 @@ func _process(delta: float) -> void:
 		_time_left += stats.time_delta
 		stats.time_delta = 0.0
 
-	# Sheet cleared -> refill (upgrade cards arrive in M3).
+	# Sheet cleared -> pause and offer 3 upgrade choices.
 	if _board.is_empty():
-		_sheet += 1
-		_board.spawn_sheet(_world, _sheet)
+		_enter_sheet_clear()
+		return
 
 	_time_left -= delta
 	_emit_accum += delta
@@ -134,6 +185,37 @@ func _process(delta: float) -> void:
 
 	if _time_left <= 0.0:
 		_end_run()
+
+
+func _enter_sheet_clear() -> void:
+	_set_state(State.SHEET_CLEAR)
+	var choices := []
+	for i in 3:
+		choices.append(POOL[randi() % POOL.size()])
+	JsBridge.emit_event("game:sheet_clear", {"sheet": _sheet, "choices": choices})
+
+
+func _pick_upgrade(id: String) -> void:
+	if _state != State.SHEET_CLEAR:
+		return
+	var lo := _loadout.get_component(C_Loadout) as C_Loadout
+	match id:
+		"P_RICOCHET": lo.ricochet += 1
+		"P_AREA": lo.area += 1
+		"P_AUTOCLICK": lo.autoclick += 1
+	_emit_loadout()
+	_sheet += 1
+	_board.spawn_sheet(_world, _sheet)
+	_set_state(State.PLAYING)
+
+
+func _emit_loadout() -> void:
+	var lo := _loadout.get_component(C_Loadout) as C_Loadout
+	JsBridge.emit_event("game:loadout", {
+		"ricochet": lo.ricochet,
+		"area": lo.area,
+		"autoclick": lo.autoclick,
+	})
 
 
 func _emit_score() -> void:

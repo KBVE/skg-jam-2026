@@ -3,8 +3,8 @@ extends System
 ## Consumes C_Popped: award score by kind, apply time effects (clock/mine),
 ## flood chain bubbles, emit game:pop, free the visual, remove the entity.
 
-var stats_entity: Entity   # injected by RunController
-var board: Board           # injected by RunController
+var stats_entity: Entity     # injected by RunController
+var board: Board             # injected by RunController
 
 
 func query() -> QueryBuilder:

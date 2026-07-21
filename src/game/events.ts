@@ -16,3 +16,12 @@ export interface RunOverPayload {
   score: number;
   currencyEarned: number;
 }
+export interface SheetClearPayload {
+  sheet: number;
+  choices: string[];
+}
+export interface LoadoutPayload {
+  ricochet: number;
+  area: number;
+  autoclick: number;
+}

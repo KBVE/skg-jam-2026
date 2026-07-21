@@ -1,6 +1,7 @@
 import { PhaserGame } from '@kbve/laser';
 import { GodotGame } from './godot/GodotGame';
 import { Hud } from './components/Hud';
+import { UpgradeCards } from './components/UpgradeCards';
 import { gameConfig } from './game/config';
 
 const fill = { position: 'absolute', inset: 0 } as const;
@@ -21,6 +22,7 @@ export default function App() {
       </div>
 
       <Hud />
+      <UpgradeCards />
     </div>
   );
 }

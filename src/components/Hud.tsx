@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useBusEvent } from '../bus';
 import { godotSend } from '../godot/bridge';
 import { BASE_TIME } from '../game/constants';
+import { POWERUPS } from '../meta/catalog';
 import type {
   GameState,
   StatePayload,
   ScorePayload,
   TimePayload,
   RunOverPayload,
+  LoadoutPayload,
 } from '../game/events';
 
 export function Hud() {
@@ -15,11 +17,13 @@ export function Hud() {
   const [score, setScore] = useState(0);
   const [time, setTime] = useState(BASE_TIME);
   const [last, setLast] = useState<RunOverPayload | null>(null);
+  const [loadout, setLoadout] = useState<LoadoutPayload>({ ricochet: 0, area: 0, autoclick: 0 });
 
   useBusEvent<StatePayload>('game:state', (p) => setState(p.state));
   useBusEvent<ScorePayload>('game:score', (p) => setScore(p.score));
   useBusEvent<TimePayload>('game:time', (p) => setTime(p.remaining));
   useBusEvent<RunOverPayload>('game:run_over', (p) => setLast(p));
+  useBusEvent<LoadoutPayload>('game:loadout', (p) => setLoadout(p));
 
   return (
     <div className="hud">
@@ -32,6 +36,11 @@ export function Hud() {
             />
           </div>
           <div className="hud-score">{score}</div>
+          <div className="hud-loadout">
+            {loadout.ricochet > 0 && <span>{POWERUPS.P_RICOCHET.icon}{loadout.ricochet}</span>}
+            {loadout.area > 0 && <span>{POWERUPS.P_AREA.icon}{loadout.area}</span>}
+            {loadout.autoclick > 0 && <span>{POWERUPS.P_AUTOCLICK.icon}{loadout.autoclick}</span>}
+          </div>
         </div>
       )}
 
