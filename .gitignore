@@ -17,3 +17,6 @@ godot/.godot/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Superpowers brainstorming artifacts (local only)
+docs/superpowers/
