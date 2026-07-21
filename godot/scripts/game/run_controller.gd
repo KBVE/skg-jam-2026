@@ -15,12 +15,14 @@ var _bonus_system: BonusSystem
 var _autoclick_system: AutoClickSystem
 var _emit_accum := 0.0
 var _clear_delay := 0.0   # counts up once the board is empty, before the overlay shows
+var _pending_choices: Array = []   # upgrades offered this sheet-clear (editor 1/2/3 picks)
 
 const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
 const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _board: Board = $Board
+@onready var _hand: HandOverlay = $HandOverlay
 
 
 func _ready() -> void:
@@ -56,6 +58,9 @@ func _ready() -> void:
 	_bonus_system = BonusSystem.new()
 	_world.add_system(_bonus_system)
 
+	# Single Godot->JS forwarding point: mirrors whitelisted GECS events to the shell.
+	_world.add_observer(JsBridgeObserver.new())
+
 	_set_state(State.IDLE)
 
 	# On the web the React shell sends "start_run" once the player begins. In the
@@ -81,7 +86,7 @@ func _fit_camera() -> void:
 
 func _set_state(s: int) -> void:
 	_state = s
-	JsBridge.emit_event("game:state", {"state": State.keys()[s]})
+	ECS.world.emit_event(GameEvents.STATE_CHANGED, null, {"state": State.keys()[s]})
 
 
 func handle_command(cmd: String, _payload: Dictionary) -> void:
@@ -133,13 +138,30 @@ func _debug_pop(n: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Editor/standalone convenience: no React shell to restart after game over,
-	# so R re-runs. On web the shell drives restart instead.
-	if not OS.has_feature("web") and _state == State.GAME_OVER \
-			and event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		_start_run({})
-		return
+	# Editor/standalone meta-command keys. On web the React shell sends these same
+	# commands, so keys are gated to non-web; both paths funnel through
+	# handle_command — one inbound entry for JS and native input alike.
+	if not OS.has_feature("web") and event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_R:
+				if _state == State.GAME_OVER:
+					handle_command("restart", {})
+					return
+			KEY_1, KEY_2, KEY_3:
+				if _state == State.SHEET_CLEAR:
+					var idx: int = event.keycode - KEY_1
+					if idx < _pending_choices.size():
+						handle_command("pick_upgrade", {"id": _pending_choices[idx]})
+					return
+			KEY_P:
+				handle_command("debug_pop", {"n": 1})
+				return
+			KEY_E:
+				handle_command("debug_end", {})
+				return
 
+	# Gameplay click: native on every platform (the canvas owns the mouse; JS never
+	# sends clicks). Pops the bubble under the cursor.
 	if _state != State.PLAYING:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -150,6 +172,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# hit() chips hp (darkens survivors, pops at 0). Spread only when the
 		# clicked bubble actually pops, so area/ricochet don't fire on a chip.
 		if _board.hit(e):
+			_hand.poke()
 			_apply_spread(cell)
 
 
@@ -228,7 +251,8 @@ func _enter_sheet_clear() -> void:
 	var choices := []
 	for i in 3:
 		choices.append(POOL[randi() % POOL.size()])
-	JsBridge.emit_event("game:sheet_clear", {"sheet": _sheet, "choices": choices})
+	_pending_choices = choices   # so editor 1/2/3 picks the same offered upgrades
+	ECS.world.emit_event(GameEvents.SHEET_CLEAR, null, {"sheet": _sheet, "choices": choices})
 
 
 func _pick_upgrade(id: String) -> void:
@@ -248,7 +272,7 @@ func _pick_upgrade(id: String) -> void:
 
 func _emit_loadout() -> void:
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
-	JsBridge.emit_event("game:loadout", {
+	ECS.world.emit_event(GameEvents.UPGRADE_PICKED, null, {
 		"ricochet": lo.ricochet,
 		"area": lo.area,
 		"autoclick": lo.autoclick,
@@ -257,17 +281,17 @@ func _emit_loadout() -> void:
 
 func _emit_score() -> void:
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
-	JsBridge.emit_event("game:score", {"score": stats.score})
+	ECS.world.emit_event(GameEvents.SCORE_CHANGED, null, {"score": stats.score})
 
 
 func _emit_time() -> void:
-	JsBridge.emit_event("game:time", {"remaining": max(0.0, _time_left)})
+	ECS.world.emit_event(GameEvents.TIME_CHANGED, null, {"remaining": max(0.0, _time_left)})
 
 
 func _end_run() -> void:
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
 	_set_state(State.GAME_OVER)
-	JsBridge.emit_event("game:run_over", {
+	ECS.world.emit_event(GameEvents.RUN_OVER, null, {
 		"score": stats.score,
 		"currencyEarned": int(floor(stats.score / 100.0)),
 	})

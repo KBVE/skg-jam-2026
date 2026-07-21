@@ -1,7 +1,9 @@
 class_name ScoreSystem
 extends System
 ## Consumes C_Popped: award score by kind, apply time effects (clock/mine),
-## flood chain bubbles, emit game:pop, free the visual, remove the entity.
+## flood chain bubbles, emit the POP event, then despawn each bubble through a
+## CommandBuffer so all removals resolve at one safe point after the drain loop
+## (no mid-iteration structural mutation of the set being processed).
 
 var stats_entity: Entity     # injected by RunController
 var board: Board             # injected by RunController
@@ -16,6 +18,9 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 	if entities.is_empty():
 		return
 	var stats := stats_entity.get_component(C_RunStats) as C_RunStats
+	# Queue every removal; flush once after the loop so despawns don't mutate the
+	# snapshot mid-iteration and all resolve in a defined order.
+	var cb := CommandBuffer.new(ECS.world)
 	for entity in entities:
 		var kc := entity.get_component(C_Kind) as C_Kind
 		var kind := kc.id if kc else Kinds.PLAIN
@@ -32,13 +37,15 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 		var cell := entity.get_component(C_Cell) as C_Cell
 		var screen := _screen_pos(cell) if cell else Vector2.ZERO
 
-		JsBridge.emit_event("game:pop", {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
+		ECS.world.emit_event(GameEvents.POP, entity, {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
 
-		# Single atomic exit: frees cells, animates the view, removes the entity.
+		# Single atomic exit (frees cells, animates the view, removes the entity),
+		# deferred to the flush below.
 		if board:
-			board.despawn(entity)
+			cb.add_custom(board.despawn.bind(entity))
 		else:
-			ECS.world.remove_entity(entity)
+			cb.remove_entity(entity)
+	cb.execute()
 
 
 ## Tag every bubble in the chain bubble's row + column as popped.
@@ -46,6 +53,7 @@ func _flood_chain(entity: Entity) -> void:
 	var cell := entity.get_component(C_Cell) as C_Cell
 	if cell == null or board == null:
 		return
+	ECS.world.emit_event(GameEvents.CHAIN, entity, {"origin_cell": Vector2i(cell.col, cell.row)})
 	var seen := {}   # dedup: a multi-cell boss appears under several row/col cells
 	for other in board.cross_of(Vector2i(cell.col, cell.row)):
 		if not seen.has(other):

@@ -81,6 +81,7 @@ func hit(e: Entity) -> bool:
 		return true
 	# Partial hit: darken + update the health bar for multi-hit bubbles.
 	_field.chip(e.get_meta("slot", -1), b.hp, b.max_hp)
+	ECS.world.emit_event(GameEvents.HIT, e, {"hp": b.hp, "max_hp": b.max_hp})
 	return false
 
 
