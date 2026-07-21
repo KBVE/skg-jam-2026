@@ -114,6 +114,13 @@ body,
   align-items: center;
   gap: 12px;
 }
+.hud-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 5ch;
+  color: #7dd3fc;
+}
 .hud-time {
   flex: 1;
   height: 14px;

@@ -37,6 +37,7 @@ export function Hud() {
     <div className="hud">
       {state === 'PLAYING' && (
         <div className="hud-play">
+          <div className="hud-clock">{Math.max(0, time).toFixed(1)}s</div>
           <div className="hud-time">
             <div
               className="hud-time-bar"

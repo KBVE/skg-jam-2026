@@ -100,18 +100,16 @@ func _start_run(payload: Dictionary) -> void:
 	_emit_loadout()
 
 
-## Dev/test helper: tag N remaining bubbles as popped (ScoreSystem handles them).
+## Dev/test helper: tag N remaining non-mine bubbles as popped.
 func _debug_pop(n: int) -> void:
 	if _state != State.PLAYING:
 		return
 	var popped := 0
-	for cell in _board._by_cell.keys():
+	for e in _board.poppable_entities():
 		if popped >= n:
 			break
-		var e: Entity = _board._by_cell[cell]
-		if e.get_component(C_Popped) == null:
-			e.add_component(C_Popped.new())
-			popped += 1
+		e.add_component(C_Popped.new())
+		popped += 1
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -175,8 +173,9 @@ func _process(delta: float) -> void:
 		_time_left += stats.time_delta
 		stats.time_delta = 0.0
 
-	# Sheet cleared -> pause and offer 3 upgrade choices.
-	if _board.is_empty():
+	# Sheet cleared once no non-mine bubbles remain (leftover mines are dropped
+	# on the next spawn, so the player can finish without eating penalties).
+	if not _board.has_poppable():
 		_enter_sheet_clear()
 		return
 

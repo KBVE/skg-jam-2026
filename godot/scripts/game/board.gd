@@ -42,6 +42,24 @@ func is_empty() -> bool:
 	return _by_cell.is_empty()
 
 
+## True while any non-mine bubble remains. Mines don't block sheet completion,
+## so a player can finish a sheet without eating mine penalties.
+func has_poppable() -> bool:
+	for e in _by_cell.values():
+		if e.get_component(C_Mine) == null:
+			return true
+	return false
+
+
+## Remaining bubbles that aren't mines and aren't already popped (for auto-pop).
+func poppable_entities() -> Array:
+	var out := []
+	for e in _by_cell.values():
+		if e.get_component(C_Mine) == null and e.get_component(C_Popped) == null:
+			out.append(e)
+	return out
+
+
 ## Every present entity in the same row or column as `cell` (excluding it).
 func cross_of(cell: Vector2i) -> Array:
 	var out := []
