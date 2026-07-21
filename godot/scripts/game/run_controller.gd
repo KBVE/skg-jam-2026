@@ -133,9 +133,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply_spread(cell)
 		else:
 			# Tough bubble survived a hit — darken it for feedback.
-			var rect = e.get_meta("rect", null)
-			if rect and is_instance_valid(rect):
-				rect.color = rect.color.darkened(0.25)
+			var view = e.get_meta("view", null)
+			if view and is_instance_valid(view):
+				view.darken()
 
 
 ## Area (Chebyshev radius) + ricochet (N nearest) spread from a clicked cell.

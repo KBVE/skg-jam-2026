@@ -10,9 +10,9 @@ var _rng := RandomNumberGenerator.new()
 
 func clear_sheet() -> void:
 	for e in _by_cell.values():
-		var rect = e.get_meta("rect", null)
-		if rect and is_instance_valid(rect):
-			rect.queue_free()
+		var view = e.get_meta("view", null)
+		if view and is_instance_valid(view):
+			view.queue_free()
 	_by_cell.clear()
 
 
@@ -77,13 +77,11 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 				Config.K_CHAIN: e.add_component(C_Chain.new())
 				Config.K_MINE: e.add_component(C_Mine.new())
 
-			var rect := ColorRect.new()
-			rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			rect.color = Config.COLORS[kind]
-			rect.size = Vector2(Config.BUBBLE_RADIUS * 2.0, Config.BUBBLE_RADIUS * 2.0)
-			rect.position = cell_center(c, r) - Vector2(Config.BUBBLE_RADIUS, Config.BUBBLE_RADIUS)
-			add_child(rect)
-			e.set_meta("rect", rect)
+			var view := BubbleView.new()
+			view.position = cell_center(c, r)
+			view.color = Config.COLORS[kind]
+			add_child(view)
+			e.set_meta("view", view)
 			e.set_meta("kind", kind)
 
 			world.add_entity(e)
