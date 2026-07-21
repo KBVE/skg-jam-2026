@@ -9,6 +9,9 @@ public/godot/*
 
 # Godot editor cache
 godot/.godot/
+
+# gdUnit4 test reports
+godot/reports/
 *.local
 .DS_Store
 .vite
@@ -17,3 +20,6 @@ godot/.godot/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Superpowers brainstorming artifacts (local only)
+docs/superpowers/

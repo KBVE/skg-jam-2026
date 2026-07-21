@@ -7,10 +7,12 @@ extends RefCounted
 
 const PLAIN := "plain"
 const TOUGH := "tough"
+const ARMOR := "armor"
 const GOLD := "gold"
 const CLOCK := "clock"
 const CHAIN := "chain"
 const MINE := "mine"
+const BOSS := "boss"
 
 # color:       bubble fill.
 # points:      score awarded on pop.
@@ -23,6 +25,7 @@ const MINE := "mine"
 const DEFS := {
 	PLAIN: {color = Color(0.22, 0.74, 0.97), points = 1, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 60.0, weight_ramp = 0.0},
 	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 12.0, weight_ramp = 2.0},
+	ARMOR: {color = Color(0.90, 0.55, 0.25), points = 5, hp = 3, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 5.0, weight_ramp = 1.5},
 	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 8.0, weight_ramp = 0.0},
 	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0},
 	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0},

@@ -31,4 +31,4 @@ func _pop_random() -> void:
 	var cands := board.poppable_entities()
 	if cands.is_empty():
 		return
-	cands[randi() % cands.size()].add_component(C_Popped.new())
+	board.hit(cands[randi() % cands.size()])   # chip hp like a click (multi-hit bugs survive)

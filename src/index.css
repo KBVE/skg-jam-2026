@@ -21,6 +21,15 @@
   --warm: oklch(84% 0.15 80);        /* amber — score */
   --danger: oklch(66% 0.22 25);      /* low-time red */
 
+  /* ── Crispy bubble-wrap tile — one raised bubble per cell:
+     contact shadow (bottom) · body sheen · sharp catchlight (top-left) ── */
+  --wrap-img:
+    radial-gradient(circle at 50% 78%, oklch(0% 0 0 / 0.30) 0 30%, transparent 47%),
+    radial-gradient(circle at 45% 42%, oklch(74% 0.06 225 / 0.16) 0 35%, transparent 45%),
+    radial-gradient(circle at 37% 29%, oklch(100% 0 0 / 0.24) 0 8%, transparent 22%);
+  --wrap-size: 44px 44px;
+  --wrap-pos: 0 0, 0 0, 0 0;
+
   /* ── The dome recipe — reused by every surface ── */
   --dome-fill: radial-gradient(125% 115% at 32% 22%,
       oklch(48% 0.055 235) 0%,
@@ -59,17 +68,24 @@ body,
   color: var(--ink);
   font-family: var(--font-ui);
   overflow: hidden;
-  /* dome-grid bubble-wrap texture behind everything */
+  /* crispy bubble-wrap sheet + top glow */
   background-color: var(--paper);
-  background-image:
-    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.05) 0 18%, transparent 44%),
-    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.16) 40%, transparent 60%),
+  background-image: var(--wrap-img),
     radial-gradient(140% 100% at 50% -10%, oklch(26% 0.05 260) 0%, transparent 62%);
-  background-size: 46px 46px, 46px 46px, 100% 100%;
-  background-position: 0 0, 0 0, 0 0;
+  background-size: var(--wrap-size), var(--wrap-size), var(--wrap-size), 100% 100%;
+  background-position: var(--wrap-pos), 0 0;
 }
 
-.app { position: relative; width: 100vw; height: 100vh; }
+/* Custom "popper" cursor over the play field; UI controls keep pointer. */
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  cursor: url(./assets/cursor-pop.svg) 16 16, crosshair;
+}
+.app:active {
+  cursor: url(./assets/cursor-pop-active.svg) 16 16, crosshair;
+}
 .layer { position: absolute; inset: 0; }
 
 /* 1. Godot game — bottom, receives clicks natively */
@@ -234,11 +250,10 @@ body,
   gap: 16px;
   padding: 24px;
   text-align: center;
-  background-color: oklch(13% 0.02 245 / 0.82);
-  background-image:
-    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.045) 0 18%, transparent 44%),
-    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.18) 40%, transparent 60%);
-  background-size: 46px 46px, 46px 46px;
+  background-color: oklch(13% 0.02 245 / 0.84);
+  background-image: var(--wrap-img);
+  background-size: var(--wrap-size);
+  background-position: var(--wrap-pos);
 }
 .panel h1 {
   margin: 0;
@@ -319,10 +334,9 @@ body,
   gap: 26px;
   padding: 24px;
   background-color: oklch(11% 0.02 245 / 0.9);
-  background-image:
-    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.05) 0 18%, transparent 44%),
-    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.2) 40%, transparent 60%);
-  background-size: 46px 46px, 46px 46px;
+  background-image: var(--wrap-img);
+  background-size: var(--wrap-size);
+  background-position: var(--wrap-pos);
 }
 .cards-overlay h2 {
   margin: 0;
@@ -473,7 +487,7 @@ body,
 
 /* ── Responsive — phones (320 / 375 / 414) ── */
 @media (max-width: 480px) {
-  html, body, #root { background-size: 38px 38px, 38px 38px, 100% 100%; }
+  :root { --wrap-size: 38px 38px; }  /* denser bubbles on small screens */
   .hud-play {
     top: 10px; left: 10px; right: 10px;
     gap: 10px; padding: 8px 12px; padding-right: 58px;
@@ -483,7 +497,7 @@ body,
   .hud-loadout { display: none; }
   .mute-toggle { width: 42px; height: 42px; font-size: 18px; top: 10px; right: 10px; }
 
-  .panel { gap: 12px; padding: 20px 16px; background-size: 38px 38px, 38px 38px; }
+  .panel { gap: 12px; padding: 20px 16px; }
   .cards { gap: 12px; }
   .card { width: min(78vw, 260px); padding: 20px 16px; }
   .card-icon { font-size: 38px; }

@@ -1,7 +1,9 @@
 class_name ScoreSystem
 extends System
 ## Consumes C_Popped: award score by kind, apply time effects (clock/mine),
-## flood chain bubbles, emit game:pop, free the visual, remove the entity.
+## flood chain bubbles, emit the POP event, then despawn each bubble through a
+## CommandBuffer so all removals resolve at one safe point after the drain loop
+## (no mid-iteration structural mutation of the set being processed).
 
 var stats_entity: Entity     # injected by RunController
 var board: Board             # injected by RunController
@@ -16,6 +18,9 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 	if entities.is_empty():
 		return
 	var stats := stats_entity.get_component(C_RunStats) as C_RunStats
+	# Queue every removal; flush once after the loop so despawns don't mutate the
+	# snapshot mid-iteration and all resolve in a defined order.
+	var cb := CommandBuffer.new(ECS.world)
 	for entity in entities:
 		var kc := entity.get_component(C_Kind) as C_Kind
 		var kind := kc.id if kc else Kinds.PLAIN
@@ -30,17 +35,17 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 			_flood_chain(entity)
 
 		var cell := entity.get_component(C_Cell) as C_Cell
-		var screen := Vector2.ZERO
-		if cell and board:
-			board.remove_cell(cell)
-			screen = _screen_pos(cell)
+		var screen := _screen_pos(cell) if cell else Vector2.ZERO
 
-		var view = entity.get_meta("view", null)
-		if view and is_instance_valid(view):
-			_pop_tween(view)
+		ECS.world.emit_event(GameEvents.POP, entity, {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
 
-		JsBridge.emit_event("game:pop", {"kind": kind, "points": points, "x": screen.x, "y": screen.y})
-		ECS.world.remove_entity(entity)
+		# Single atomic exit (frees cells, animates the view, removes the entity),
+		# deferred to the flush below.
+		if board:
+			cb.add_custom(board.despawn.bind(entity))
+		else:
+			cb.remove_entity(entity)
+	cb.execute()
 
 
 ## Tag every bubble in the chain bubble's row + column as popped.
@@ -48,9 +53,12 @@ func _flood_chain(entity: Entity) -> void:
 	var cell := entity.get_component(C_Cell) as C_Cell
 	if cell == null or board == null:
 		return
+	ECS.world.emit_event(GameEvents.CHAIN, entity, {"origin_cell": Vector2i(cell.col, cell.row)})
+	var seen := {}   # dedup: a multi-cell boss appears under several row/col cells
 	for other in board.cross_of(Vector2i(cell.col, cell.row)):
-		if other.get_component(C_Popped) == null:
-			other.add_component(C_Popped.new())
+		if not seen.has(other):
+			seen[other] = true
+			board.hit(other)   # chip hp (multi-hit bugs survive a single flood)
 
 
 ## Cell -> DOM/screen pixel (Godot canvas == Phaser overlay == full window).
@@ -62,12 +70,3 @@ func _screen_pos(cell: C_Cell) -> Vector2:
 	var zoom := camera.zoom if camera else Vector2.ONE
 	var cam := camera.position if camera else Vector2.ZERO
 	return (world - cam) * zoom + vp * 0.5
-
-
-## Scale-up + fade, then free the visual (Node2D scales from its center origin).
-func _pop_tween(view: Node2D) -> void:
-	var tw := view.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(view, "scale", Vector2(1.5, 1.5), 0.16)
-	tw.tween_property(view, "modulate:a", 0.0, 0.16)
-	tw.chain().tween_callback(view.queue_free)
