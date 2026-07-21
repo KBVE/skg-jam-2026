@@ -3,6 +3,8 @@ extends RefCounted
 ## Central tuning constants for the run.
 
 const BASE_TIME := 60.0
+const TIME_PURCHASE_COST := 100
+const TIME_PURCHASE_SECONDS := 60.0
 const CELL := 72.0           # px between cell centers
 const BUBBLE_RADIUS := 30.0
 

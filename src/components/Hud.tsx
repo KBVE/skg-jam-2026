@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBusEvent } from '../bus';
 import { godotSend } from '../godot/bridge';
-import { BASE_TIME } from '../game/constants';
+import { BASE_TIME, TIME_PURCHASE_COST, TIME_PURCHASE_SECONDS } from '../game/constants';
 import { POWERUPS } from '../meta/catalog';
 import { buildLoadout, bank } from '../meta/store';
 import { playPop, isMuted, toggleMute } from '../game/sfx';
@@ -76,6 +76,17 @@ export function Hud() {
               />
             </div>
             <div className="hud-score" key={score}>{score}</div>
+            <button
+              className="hud-buy-time"
+              disabled={score < TIME_PURCHASE_COST}
+              onClick={() => godotSend('buy_time')}
+              aria-label={`Buy ${TIME_PURCHASE_SECONDS} seconds for ${TIME_PURCHASE_COST} score points`}
+              title={score < TIME_PURCHASE_COST
+                ? `Need ${TIME_PURCHASE_COST - score} more points`
+                : `Spend ${TIME_PURCHASE_COST} points for ${TIME_PURCHASE_SECONDS} seconds`}
+            >
+              <Icon name="hourglass" /> +{TIME_PURCHASE_SECONDS}s <span>{TIME_PURCHASE_COST}</span>
+            </button>
             <div className="hud-loadout">
               {loadout.ricochet > 0 && <span><Icon name={POWERUPS.P_RICOCHET.icon} />{loadout.ricochet}</span>}
               {loadout.area > 0 && <span><Icon name={POWERUPS.P_AREA.icon} />{loadout.area}</span>}

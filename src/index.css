@@ -202,6 +202,28 @@ body,
   color: var(--warm);
   animation: score-bump 0.16s var(--ease-pop);
 }
+.hud-buy-time {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 11px;
+  border: 1px solid oklch(84% 0.15 80 / 0.55);
+  border-radius: var(--radius-pill);
+  background: var(--dome-fill);
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.2);
+  color: var(--ink);
+  font: 700 14px var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-pop), opacity var(--dur) ease;
+}
+.hud-buy-time span { color: var(--warm); }
+.hud-buy-time:hover:not(:disabled) { transform: scale(1.05); }
+.hud-buy-time:active:not(:disabled) { transform: scale(0.92); }
+.hud-buy-time:focus-visible { outline: 3px solid var(--accent-1); outline-offset: 2px; }
+.hud-buy-time:disabled { opacity: 0.42; cursor: not-allowed; }
 @keyframes score-bump {
   0%   { transform: scale(1.45); color: var(--accent-1); }
   100% { transform: scale(1); color: var(--warm); }
@@ -494,6 +516,7 @@ body,
   }
   .hud-clock { font-size: 17px; min-width: 4.5ch; }
   .hud-score { font-size: 22px; }
+  .hud-buy-time { padding: 5px 8px; font-size: 12px; }
   .hud-loadout { display: none; }
   .mute-toggle { width: 42px; height: 42px; font-size: 18px; top: 10px; right: 10px; }
 
@@ -511,6 +534,7 @@ body,
   .hud-play.low,
   .pop-point,
   .hud-score,
+  .hud-buy-time,
   .panel-newbest,
   .card,
   .shop-item,

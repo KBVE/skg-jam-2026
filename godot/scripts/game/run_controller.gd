@@ -96,6 +96,8 @@ func handle_command(cmd: String, _payload: Dictionary) -> void:
 			_start_run(_payload)
 		"pick_upgrade":
 			_pick_upgrade(str(_payload.get("id", "")))
+		"buy_time":
+			_buy_time()
 		"debug_pop":
 			_debug_pop(int(_payload.get("n", 1)))
 		"debug_end":
@@ -159,6 +161,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			KEY_E:
 				handle_command("debug_end", {})
+				return
+			KEY_T:
+				handle_command("buy_time", {})
 				return
 
 	# Gameplay click: native on every platform (the canvas owns the mouse; JS never
@@ -298,6 +303,20 @@ func _emit_score() -> void:
 
 func _emit_time() -> void:
 	ECS.world.emit_event(GameEvents.TIME_CHANGED, null, {"remaining": max(0.0, _time_left)})
+
+
+## Spend run score for more time. Keeping the transaction here makes Godot the
+## authority even if a stale or repeated command arrives from the web shell.
+func _buy_time() -> void:
+	if _state != State.PLAYING:
+		return
+	var stats := _stats.get_component(C_RunStats) as C_RunStats
+	if stats.score < Config.TIME_PURCHASE_COST:
+		return
+	stats.score -= Config.TIME_PURCHASE_COST
+	_time_left += Config.TIME_PURCHASE_SECONDS
+	_emit_score()
+	_emit_time()
 
 
 func _end_run() -> void:
