@@ -37,9 +37,8 @@ var _sub: SubViewport
 var _arm: Node3D
 var _cam: Camera3D
 var _skel: Skeleton3D
-var _iks: Array[SkeletonIK3D] = []   # one per arm (right, left)
 var _targets: Array[Marker3D] = []   # world-space IK target node per arm
-var _rest_local: Array[Vector3] = [] # each wrist's rest pos in skeleton space
+var _rest_local: Array[Vector3] = [] # each end bone's rest pos in skeleton space
 var _sides: Array[float] = []        # +1 = right-hand arm, -1 = left-hand arm
 var _pos: Array[Vector3] = []        # per-arm smoothed world target position
 var _poke := 0.0                     # 1 -> 0 over one jab
@@ -79,38 +78,33 @@ func _ready() -> void:
 	_setup_ik()
 
 
-## Right + left arm IK, each with a world-space target marker.
+## Both arms via one TwoBoneIK3D (Godot 4.6+ proper two-bone IK: natural elbow,
+## no wrist crank). setting 0 = right arm, setting 1 = left arm.
 func _setup_ik() -> void:
 	_skel = _arm.get_node("arms/Skeleton3D") as Skeleton3D
 	if _skel == null:
 		return
-	# magnet = elbow pole hint (mirror x for the left). side = screen half.
-	_add_ik("bicep.r", "wrist.r", Vector3(1.0, -1.0, 2.0), 1.0)
-	_add_ik("bicep.l", "wrist.l", Vector3(-1.0, -1.0, 2.0), -1.0)
+	var ik := TwoBoneIK3D.new()
+	ik.set("setting_count", 2)
+	_skel.add_child(ik)   # in-tree before setting NodePaths so get_path_to resolves
+	# side = which screen half this arm answers to; pole bends the elbow outward.
+	_configure(ik, 0, "bicep.r", "forearm.r", "wrist.r", 1.0)
+	_configure(ik, 1, "bicep.l", "forearm.l", "wrist.l", -1.0)
 
 
-func _add_ik(root: String, tip: String, magnet: Vector3, side: float) -> void:
-	var wrist := _skel.find_bone(tip)
-	if wrist == -1:
-		return
-	# Wrist rest position in skeleton space (constant; the world pos is derived
-	# each frame from the skeleton transform so it follows live placement/scale).
-	_rest_local.append(_skel.get_bone_global_pose(wrist).origin)
+func _configure(ik: TwoBoneIK3D, idx: int, root: String, middle: String, end: String, side: float) -> void:
+	ik.set_root_bone_name(idx, root)
+	ik.set_middle_bone_name(idx, middle)
+	ik.set_end_bone_name(idx, end)
+	# Elbow pole: bend outward + down so the arm reads naturally.
+	ik.set_pole_direction_vector(idx, Vector3(side, -1.0, 0.0))
 
 	var marker := Marker3D.new()
 	_sub.add_child(marker)
+	ik.set_target_node(idx, ik.get_path_to(marker))
 
-	var ik := SkeletonIK3D.new()
-	ik.root_bone = root
-	ik.tip_bone = tip
-	ik.use_magnet = true
-	ik.magnet = magnet
-	ik.interpolation = 1.0
-	_skel.add_child(ik)
-	ik.target_node = ik.get_path_to(marker)
-	ik.start()
-
-	_iks.append(ik)
+	var end_bone := _skel.find_bone(end)
+	_rest_local.append(_skel.get_bone_global_pose(end_bone).origin)
 	_targets.append(marker)
 	_sides.append(side)
 	_pos.append(_skel.global_transform * _rest_local[_rest_local.size() - 1])
@@ -126,7 +120,7 @@ func _apply_transform() -> void:
 
 
 func _process(delta: float) -> void:
-	if _iks.is_empty():
+	if _targets.is_empty():
 		return
 
 	_apply_transform()   # live @export tuning
@@ -149,7 +143,7 @@ func _process(delta: float) -> void:
 	# Each arm answers only its own half: cursor left -> left arm reaches to the
 	# cursor, cursor right -> right arm. Active arm targets the cursor projected
 	# onto the reach plane (full-screen swing); idle arm springs home to rest.
-	for i in _iks.size():
+	for i in _targets.size():
 		var active := signf(nx) == _sides[i]
 		var goal: Vector3
 		if active:
