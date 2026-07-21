@@ -32,6 +32,9 @@ const ARM_SCENE := preload("res://assets/models/arms.glb")
 @export var poke_depth := 0.8   # forward jab distance (toward camera)
 @export var follow_speed := 12.0
 @export var poke_time := 0.16   # jab duration; matches the bubble pop animation
+## Wrist orientation (degrees) the IK aims the hand at — controls facing, and
+## stops the hand cranking/twisting. Tune live until the palm faces the board.
+@export var hand_rot := Vector3(0.0, 0.0, 0.0)
 
 var _sub: SubViewport
 var _arm: Node3D
@@ -78,32 +81,36 @@ func _ready() -> void:
 	_setup_ik()
 
 
-## Both arms via one TwoBoneIK3D (Godot 4.6+ proper two-bone IK: natural elbow,
-## no wrist crank). setting 0 = right arm, setting 1 = left arm.
+## One SkeletonIK3D per arm (bicep -> wrist), each aimed at a world-space target
+## marker. The marker carries a fixed hand orientation so the wrist is placed AND
+## aimed (no crank). side = which screen half the arm answers to.
 func _setup_ik() -> void:
 	_skel = _arm.get_node("arms/Skeleton3D") as Skeleton3D
 	if _skel == null:
 		return
-	var ik := TwoBoneIK3D.new()
-	ik.set("setting_count", 2)
-	_skel.add_child(ik)   # in-tree before setting NodePaths so get_path_to resolves
-	# side = which screen half this arm answers to; pole bends the elbow outward.
-	_configure(ik, 0, "bicep.r", "forearm.r", "wrist.r", 1.0)
-	_configure(ik, 1, "bicep.l", "forearm.l", "wrist.l", -1.0)
+	_add_ik("bicep.r", "wrist.r", 1.0)
+	_add_ik("bicep.l", "wrist.l", -1.0)
 
 
-func _configure(ik: TwoBoneIK3D, idx: int, root: String, middle: String, end: String, side: float) -> void:
-	ik.set_root_bone_name(idx, root)
-	ik.set_middle_bone_name(idx, middle)
-	ik.set_end_bone_name(idx, end)
-	# Elbow pole: bend outward + down so the arm reads naturally.
-	ik.set_pole_direction_vector(idx, Vector3(side, -1.0, 0.0))
+func _add_ik(root: String, tip: String, side: float) -> void:
+	var end_bone := _skel.find_bone(tip)
+	if end_bone == -1:
+		return
 
 	var marker := Marker3D.new()
+	marker.name = "IKTarget%d" % _targets.size()
 	_sub.add_child(marker)
-	ik.set_target_node(idx, ik.get_path_to(marker))
 
-	var end_bone := _skel.find_bone(end)
+	var ik := SkeletonIK3D.new()
+	ik.root_bone = root
+	ik.tip_bone = tip
+	ik.use_magnet = false                  # magnet forces a bad bend plane -> forearm roll
+	ik.override_tip_basis = false          # DON'T force wrist orientation — that rolls/twists the forearm at the elbow
+	ik.interpolation = 1.0
+	_skel.add_child(ik)
+	ik.target_node = ik.get_path_to(marker)
+	ik.start()
+
 	_rest_local.append(_skel.get_bone_global_pose(end_bone).origin)
 	_targets.append(marker)
 	_sides.append(side)
@@ -139,6 +146,7 @@ func _process(delta: float) -> void:
 	var jab := sin(_poke * PI) * poke_depth
 
 	var k := minf(1.0, delta * follow_speed)
+	var hand_basis := Basis.from_euler(hand_rot * (PI / 180.0))
 
 	# Each arm answers only its own half: cursor left -> left arm reaches to the
 	# cursor, cursor right -> right arm. Active arm targets the cursor projected
@@ -151,7 +159,8 @@ func _process(delta: float) -> void:
 		else:
 			goal = _skel.global_transform * _rest_local[i]
 		_pos[i] = _pos[i].lerp(goal, k)
-		_targets[i].global_position = _pos[i]
+		# Position + fixed hand orientation, so the wrist is aimed, not cranked.
+		_targets[i].global_transform = Transform3D(hand_basis, _pos[i])
 
 
 ## Trigger a forward jab. Called when a player click pops a bubble.
