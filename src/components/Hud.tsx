@@ -28,7 +28,7 @@ export function Hud() {
           <div className="hud-time">
             <div
               className="hud-time-bar"
-              style={{ width: `${Math.max(0, (time / BASE_TIME) * 100)}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, (time / BASE_TIME) * 100))}%` }}
             />
           </div>
           <div className="hud-score">{score}</div>

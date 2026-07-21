@@ -4,3 +4,4 @@ extends Component
 
 @export var score: int = 0
 @export var pops: int = 0
+@export var time_delta: float = 0.0   # seconds to add/remove; drained by RunController

@@ -10,6 +10,7 @@ var _sheet := 0
 var _world: World
 var _stats: Entity
 var _score_system: ScoreSystem
+var _bonus_system: BonusSystem
 var _emit_accum := 0.0
 
 @onready var _camera: Camera2D = $Camera2D
@@ -39,6 +40,9 @@ func _ready() -> void:
 	_score_system.board = _board
 	_world.add_system(_score_system)
 
+	_bonus_system = BonusSystem.new()
+	_world.add_system(_bonus_system)
+
 	_set_state(State.IDLE)
 
 
@@ -59,6 +63,8 @@ func _start_run() -> void:
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
 	stats.score = 0
 	stats.pops = 0
+	stats.time_delta = 0.0
+	_bonus_system.reset()
 	_sheet = 0
 	_time_left = Config.BASE_TIME
 	_board.spawn_sheet(_world, _sheet)
@@ -95,6 +101,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		bubble.hp -= 1
 		if bubble.hp <= 0:
 			e.add_component(C_Popped.new())
+		else:
+			# Tough bubble survived a hit — darken it for feedback.
+			var rect = e.get_meta("rect", null)
+			if rect and is_instance_valid(rect):
+				rect.color = rect.color.darkened(0.25)
 
 
 func _process(delta: float) -> void:
@@ -102,6 +113,12 @@ func _process(delta: float) -> void:
 		return
 
 	ECS.process(delta)
+
+	# Apply time gained/lost this frame (clock/mine bubbles + pop bonuses).
+	var stats := _stats.get_component(C_RunStats) as C_RunStats
+	if stats.time_delta != 0.0:
+		_time_left += stats.time_delta
+		stats.time_delta = 0.0
 
 	# Sheet cleared -> refill (upgrade cards arrive in M3).
 	if _board.is_empty():
