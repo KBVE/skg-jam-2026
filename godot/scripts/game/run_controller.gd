@@ -61,6 +61,12 @@ func _ready() -> void:
 
 	_set_state(State.IDLE)
 
+	# On the web the React shell sends "start_run" once the player begins. In the
+	# editor (or any non-web run) there is no shell, so auto-start to make the
+	# game playable standalone.
+	if not OS.has_feature("web"):
+		_start_run({})
+
 
 func _set_state(s: int) -> void:
 	_state = s
@@ -115,6 +121,13 @@ func _debug_pop(n: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Editor/standalone convenience: no React shell to restart after game over,
+	# so R re-runs. On web the shell drives restart instead.
+	if not OS.has_feature("web") and _state == State.GAME_OVER \
+			and event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		_start_run({})
+		return
+
 	if _state != State.PLAYING:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

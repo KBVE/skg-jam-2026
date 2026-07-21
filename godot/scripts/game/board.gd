@@ -45,19 +45,13 @@ func is_empty() -> bool:
 ## True while any non-mine bubble remains. Mines don't block sheet completion,
 ## so a player can finish a sheet without eating mine penalties.
 func has_poppable() -> bool:
-	for e in _by_cell.values():
-		if e.get_component(C_Mine) == null:
-			return true
-	return false
+	return not poppable_entities().is_empty()
 
 
-## Remaining bubbles that aren't mines and aren't already popped (for auto-pop).
+## Remaining bubbles that aren't mines and aren't already popped (for clear
+## check + auto-pop). GECS query: bubbles minus mines minus already-popped.
 func poppable_entities() -> Array:
-	var out := []
-	for e in _by_cell.values():
-		if e.get_component(C_Mine) == null and e.get_component(C_Popped) == null:
-			out.append(e)
-	return out
+	return ECS.world.query.with_all([C_Bubble]).with_none([C_Mine, C_Popped]).execute()
 
 
 ## Every present entity in the same row or column as `cell` (excluding it).
@@ -75,12 +69,13 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 	clear_sheet()
 	for r in Config.GRID_ROWS:
 		for c in Config.GRID_COLS:
-			var kind := Config.pick_kind(sheet_index, _rng)
+			var id := Kinds.pick(sheet_index, _rng)
+			var def := Kinds.of(id)
 			var e := Entity.new()
 			e.name = "Bubble_%d_%d" % [c, r]
 
 			var bubble := C_Bubble.new()
-			bubble.hp = Config.TOUGH_HP if kind == Config.K_TOUGH else 1
+			bubble.hp = def.hp
 			e.add_component(bubble)
 
 			var cell := C_Cell.new()
@@ -88,19 +83,19 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 			cell.row = r
 			e.add_component(cell)
 
-			match kind:
-				Config.K_TOUGH: e.add_component(C_Tough.new())
-				Config.K_GOLD: e.add_component(C_Gold.new())
-				Config.K_CLOCK: e.add_component(C_Clock.new())
-				Config.K_CHAIN: e.add_component(C_Chain.new())
-				Config.K_MINE: e.add_component(C_Mine.new())
+			var kind := C_Kind.new()
+			kind.id = id
+			e.add_component(kind)
+
+			# Mine is the one kind that needs a marker: poppable queries filter on it.
+			if def.mine:
+				e.add_component(C_Mine.new())
 
 			var view := BubbleView.new()
 			view.position = cell_center(c, r)
-			view.color = Config.COLORS[kind]
+			view.color = def.color
 			add_child(view)
 			e.set_meta("view", view)
-			e.set_meta("kind", kind)
 
 			world.add_entity(e)
 			_by_cell[Vector2i(c, r)] = e

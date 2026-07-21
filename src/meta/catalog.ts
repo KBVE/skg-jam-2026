@@ -7,9 +7,9 @@ export interface PowerUp {
 }
 
 export const POWERUPS: Record<string, PowerUp> = {
-  P_RICOCHET: { id: 'P_RICOCHET', name: 'Ricochet', desc: '+1 nearest bubble popped per pop', icon: '🎯' },
-  P_AREA: { id: 'P_AREA', name: 'Area Blast', desc: '+1 cell pop radius', icon: '💥' },
-  P_AUTOCLICK: { id: 'P_AUTOCLICK', name: 'Auto-Popper', desc: '+1 auto-pop per second', icon: '🤖' },
+  P_RICOCHET: { id: 'P_RICOCHET', name: 'Ricochet', desc: '+1 nearest bubble popped per pop', icon: 'target' },
+  P_AREA: { id: 'P_AREA', name: 'Area Blast', desc: '+1 cell pop radius', icon: 'bomb' },
+  P_AUTOCLICK: { id: 'P_AUTOCLICK', name: 'Auto-Popper', desc: '+1 auto-pop per second', icon: 'robot' },
 };
 
 export interface MetaBonuses {
@@ -30,12 +30,12 @@ export interface MetaUnlock {
 
 // Permanent, stackable unlocks bought with currency between runs.
 export const META_UNLOCKS: MetaUnlock[] = [
-  { id: 'U_BASE_TIME', name: '+5s Base Time', desc: 'Start each run with more time', icon: '⏳', cost: 3,
+  { id: 'U_BASE_TIME', name: '+5s Base Time', desc: 'Start each run with more time', icon: 'hourglass', cost: 3,
     apply: (b) => ({ ...b, baseTime: b.baseTime + 5 }) },
-  { id: 'U_START_RICOCHET', name: 'Start Ricochet', desc: '+1 starting ricochet', icon: '🎯', cost: 5,
+  { id: 'U_START_RICOCHET', name: 'Start Ricochet', desc: '+1 starting ricochet', icon: 'target', cost: 5,
     apply: (b) => ({ ...b, ricochet: b.ricochet + 1 }) },
-  { id: 'U_START_AREA', name: 'Start Area', desc: '+1 starting pop radius', icon: '💥', cost: 8,
+  { id: 'U_START_AREA', name: 'Start Area', desc: '+1 starting pop radius', icon: 'bomb', cost: 8,
     apply: (b) => ({ ...b, area: b.area + 1 }) },
-  { id: 'U_START_AUTOCLICK', name: 'Start Auto-Pop', desc: '+1 starting auto-popper', icon: '🤖', cost: 5,
+  { id: 'U_START_AUTOCLICK', name: 'Start Auto-Pop', desc: '+1 starting auto-popper', icon: 'robot', cost: 5,
     apply: (b) => ({ ...b, autoclick: b.autoclick + 1 }) },
 ];

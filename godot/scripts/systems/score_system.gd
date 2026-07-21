@@ -16,21 +16,16 @@ func process(entities: Array[Entity], _components: Array, _delta: float) -> void
 		return
 	var stats := stats_entity.get_component(C_RunStats) as C_RunStats
 	for entity in entities:
-		var kind := str(entity.get_meta("kind", Config.K_PLAIN))
+		var kc := entity.get_component(C_Kind) as C_Kind
+		var kind := kc.id if kc else Kinds.PLAIN
+		var def := Kinds.of(kind)
 
-		var points := Config.SCORE_PLAIN
-		if entity.get_component(C_Tough) != null:
-			points = Config.SCORE_TOUGH
-		elif entity.get_component(C_Gold) != null:
-			points = Config.SCORE_GOLD
+		var points: int = def.points
 		stats.score += points
 		stats.pops += 1
 
-		if entity.get_component(C_Clock) != null:
-			stats.time_delta += Config.CLOCK_BONUS
-		if entity.get_component(C_Mine) != null:
-			stats.time_delta -= Config.MINE_PENALTY
-		if entity.get_component(C_Chain) != null:
+		stats.time_delta += def.time
+		if def.chain:
 			_flood_chain(entity)
 
 		var cell := entity.get_component(C_Cell) as C_Cell

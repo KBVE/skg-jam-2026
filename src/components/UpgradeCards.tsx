@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useBusEvent } from '../bus';
 import { godotSend } from '../godot/bridge';
 import { POWERUPS } from '../meta/catalog';
+import { Icon } from './Icon';
 import type { SheetClearPayload, StatePayload } from '../game/events';
 
 /** Overlay shown during SHEET_CLEAR: 3 upgrade choices; picking resumes the run. */
@@ -32,7 +33,7 @@ export function UpgradeCards() {
           const p = POWERUPS[id];
           return (
             <button key={i} className="card" onClick={() => pick(id)}>
-              <div className="card-icon">{p?.icon ?? '❓'}</div>
+              <div className="card-icon"><Icon name={p?.icon ?? 'help'} /></div>
               <div className="card-name">{p?.name ?? id}</div>
               <div className="card-desc">{p?.desc ?? ''}</div>
             </button>

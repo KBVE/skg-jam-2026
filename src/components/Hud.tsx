@@ -6,6 +6,7 @@ import { POWERUPS } from '../meta/catalog';
 import { buildLoadout, bank } from '../meta/store';
 import { playPop, isMuted, toggleMute } from '../game/sfx';
 import { Shop } from './Shop';
+import { Icon } from './Icon';
 import type {
   PopPayload,
   GameState,
@@ -76,9 +77,9 @@ export function Hud() {
             </div>
             <div className="hud-score" key={score}>{score}</div>
             <div className="hud-loadout">
-              {loadout.ricochet > 0 && <span>{POWERUPS.P_RICOCHET.icon}{loadout.ricochet}</span>}
-              {loadout.area > 0 && <span>{POWERUPS.P_AREA.icon}{loadout.area}</span>}
-              {loadout.autoclick > 0 && <span>{POWERUPS.P_AUTOCLICK.icon}{loadout.autoclick}</span>}
+              {loadout.ricochet > 0 && <span><Icon name={POWERUPS.P_RICOCHET.icon} />{loadout.ricochet}</span>}
+              {loadout.area > 0 && <span><Icon name={POWERUPS.P_AREA.icon} />{loadout.area}</span>}
+              {loadout.autoclick > 0 && <span><Icon name={POWERUPS.P_AUTOCLICK.icon} />{loadout.autoclick}</span>}
             </div>
           </div>
           <MuteToggle muted={muted} onToggle={() => setMuted(toggleMute())} />
@@ -91,7 +92,7 @@ export function Hud() {
           <h1>Bubble Roguelite</h1>
           <p className="panel-tag">Pop every bubble before the timer runs out.</p>
           <p className="panel-how">Click bubbles to pop · clear the sheet · pick a power-up · go deeper</p>
-          {best > 0 && <p className="panel-best">Best 🫧 {best}</p>}
+          {best > 0 && <p className="panel-best">Best {best}</p>}
           <Shop />
           <button onClick={() => godotSend('start_run', buildLoadout())}>Start</button>
         </div>
@@ -103,7 +104,7 @@ export function Hud() {
           <h1>Time!</h1>
           {beatBest && <p className="panel-newbest">✨ New best!</p>}
           <p>
-            Score: {last?.score ?? score} · earned 🫧 {last?.currencyEarned ?? 0}
+            Score: {last?.score ?? score} · earned <Icon name="droplet" /> {last?.currencyEarned ?? 0}
           </p>
           {best > 0 && <p className="panel-best">Best {best}</p>}
           <Shop />
@@ -123,7 +124,7 @@ function MuteToggle({ muted, onToggle }: { muted: boolean; onToggle: () => void 
       aria-pressed={muted}
       title={muted ? 'Unmute' : 'Mute'}
     >
-      {muted ? '🔇' : '🔊'}
+      <Icon name={muted ? 'volume-x' : 'volume'} />
     </button>
   );
 }

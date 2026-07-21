@@ -1,90 +1,84 @@
-/* Hallmark · redesign · genre: playful · theme: custom "Bubblegloss"
- * paper oklch(16% 0.02 235) dark-aqua · accent cyan→violet candy · warm amber score
- * display Fredoka · ui Nunito · surfaces: frosted glass + glossy dome highlight
- * scope: game HUD overlay — pointer-events + layer order preserved verbatim
+/* Hallmark · redesign v2 · genre: playful · theme: custom "Bubble-Wrap Material"
+ * Art direction: the UI is made of bubble wrap. Dome-grid backdrop ties the HUD
+ * to the play field; every surface is a matte translucent DOME (radial highlight
+ * + rim + contact shadow — no glassmorphism blur, no gradient-clip text);
+ * buttons/cards physically POP on press (squish + deflate).
+ * scope: game HUD overlay — pointer-events + layer order preserved verbatim.
  */
 
 :root {
   color-scheme: dark;
 
-  /* type */
   --font-display: 'Fredoka', system-ui, sans-serif;
   --font-ui: 'Nunito Variable', 'Nunito', system-ui, sans-serif;
 
-  /* ink */
-  --ink: oklch(96% 0.01 235);
-  --muted: oklch(72% 0.02 235);
-  --paper: oklch(16% 0.02 235);
+  --ink: oklch(97% 0.01 235);
+  --muted: oklch(74% 0.025 235);
+  --paper: oklch(15% 0.025 240);
 
-  /* candy accents */
-  --accent-1: oklch(78% 0.15 220);   /* cyan  */
-  --accent-2: oklch(66% 0.19 300);   /* violet */
-  --candy: linear-gradient(120deg, var(--accent-1), var(--accent-2));
-  --warm: oklch(83% 0.15 78);        /* amber — score / big pops */
+  --accent-1: oklch(80% 0.14 210);   /* cyan   */
+  --accent-2: oklch(66% 0.19 295);   /* violet */
+  --warm: oklch(84% 0.15 80);        /* amber — score */
+  --danger: oklch(66% 0.22 25);      /* low-time red */
 
-  /* glass surfaces */
-  --glass: oklch(28% 0.03 235 / 0.55);
-  --glass-strong: oklch(24% 0.03 235 / 0.82);
-  --glass-border: oklch(85% 0.04 235 / 0.18);
-  --glass-hi: oklch(98% 0.02 235 / 0.28);   /* glossy top highlight */
+  /* ── The dome recipe — reused by every surface ── */
+  --dome-fill: radial-gradient(125% 115% at 32% 22%,
+      oklch(48% 0.055 235) 0%,
+      oklch(31% 0.045 240) 46%,
+      oklch(24% 0.04 245) 100%);
+  --dome-rim: oklch(82% 0.05 230 / 0.32);
+  --dome-hi: radial-gradient(60% 45% at 30% 20%, oklch(100% 0 0 / 0.4), transparent 70%);
+  --dome-shadow:
+      0 10px 20px oklch(0% 0 0 / 0.42),
+      inset 0 2px 0 oklch(100% 0 0 / 0.3),
+      inset 0 -7px 14px oklch(0% 0 0 / 0.28);
 
-  /* shape + motion */
-  --radius-lg: 22px;
-  --radius-md: 14px;
+  /* accent dome (primary action) */
+  --dome-accent: radial-gradient(125% 115% at 32% 22%,
+      oklch(88% 0.1 205) 0%,
+      oklch(74% 0.15 235) 46%,
+      oklch(62% 0.19 285) 100%);
+
+  --radius-lg: 26px;
+  --radius-md: 18px;
   --radius-pill: 999px;
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);  /* slight overshoot = bounce */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur: 0.16s;
+  --dur: 0.14s;
 
   --hud: var(--ink);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html,
 body,
 #root {
   margin: 0;
   height: 100%;
-  background:
-    radial-gradient(120% 90% at 50% -10%, oklch(24% 0.04 250) 0%, transparent 60%),
-    var(--paper);
   color: var(--ink);
   font-family: var(--font-ui);
   overflow: hidden;
+  /* dome-grid bubble-wrap texture behind everything */
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.05) 0 18%, transparent 44%),
+    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.16) 40%, transparent 60%),
+    radial-gradient(140% 100% at 50% -10%, oklch(26% 0.05 260) 0%, transparent 62%);
+  background-size: 46px 46px, 46px 46px, 100% 100%;
+  background-position: 0 0, 0 0, 0 0;
 }
 
-.app {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-}
-
-.layer {
-  position: absolute;
-  inset: 0;
-}
+.app { position: relative; width: 100vw; height: 100vh; }
+.layer { position: absolute; inset: 0; }
 
 /* 1. Godot game — bottom, receives clicks natively */
-.godot-layer {
-  z-index: 0;
-}
-#godot-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  outline: none;
-}
+.godot-layer { z-index: 0; }
+#godot-canvas { display: block; width: 100%; height: 100%; outline: none; }
 
 /* 2. Phaser FX overlay — transparent, never eats input */
-.phaser-overlay {
-  z-index: 1;
-  pointer-events: none;
-}
-.phaser-overlay canvas {
-  background: transparent !important;
-}
+.phaser-overlay { z-index: 1; pointer-events: none; }
+.phaser-overlay canvas { background: transparent !important; }
 
 /* Godot loading / error splash */
 .godot-overlay {
@@ -100,26 +94,9 @@ body,
   color: var(--muted);
   background: var(--paper);
 }
-.godot-error {
-  color: oklch(70% 0.17 20);
-}
+.godot-error { color: var(--danger); }
 
-/* ── Glossy dome highlight — the signature bubble-wrap move.
-   A soft white arc across the top of any frosted surface. */
-.glossy {
-  position: relative;
-  overflow: hidden;
-}
-.glossy::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 55%;
-  background: linear-gradient(180deg, var(--glass-hi), transparent);
-  pointer-events: none;
-}
-
-/* ── Floating "+N" score popups (React layer) ── */
+/* ── Floating "+N" score popups ── */
 .pop-points {
   position: absolute;
   inset: 0;
@@ -134,29 +111,24 @@ body,
   font-weight: 600;
   font-size: 18px;
   color: var(--ink);
-  text-shadow: 0 2px 6px oklch(0% 0 0 / 0.55);
+  text-shadow: 0 2px 5px oklch(0% 0 0 / 0.6);
   animation: pop-rise 0.7s var(--ease-out) forwards;
 }
 .pop-point.big {
   font-size: 28px;
   color: var(--warm);
-  text-shadow: 0 0 14px oklch(83% 0.15 78 / 0.5), 0 2px 6px oklch(0% 0 0 / 0.55);
+  text-shadow: 0 0 14px oklch(84% 0.15 80 / 0.5), 0 2px 5px oklch(0% 0 0 / 0.6);
 }
 @keyframes pop-rise {
-  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
-  25%  { opacity: 1; transform: translate(-50%, -70%) scale(1.1); }
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.7); }
+  22%  { opacity: 1; transform: translate(-50%, -72%) scale(1.15); }
   100% { opacity: 0; transform: translate(-50%, -160%) scale(1); }
 }
 
 /* ── 3. React HUD — top. Container ignores pointer; interactive bits opt in. ── */
-.hud {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
+.hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 
-/* Play-bar: one frosted pill spanning the top */
+/* Play-bar: a matte bubble-sheet strip */
 .hud-play {
   position: absolute;
   top: 14px;
@@ -166,12 +138,11 @@ body,
   align-items: center;
   gap: 14px;
   padding: 10px 16px;
+  padding-right: 66px;
   border-radius: var(--radius-pill);
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  box-shadow: 0 8px 30px oklch(0% 0 0 / 0.35), inset 0 1px 0 var(--glass-hi);
+  background: var(--dome-fill);
+  border: 1px solid var(--dome-rim);
+  box-shadow: var(--dome-shadow);
 }
 .hud-clock {
   font-family: var(--font-display);
@@ -184,27 +155,25 @@ body,
 .hud-time {
   position: relative;
   flex: 1;
-  height: 14px;
-  background: oklch(30% 0.02 235 / 0.6);
+  height: 15px;
+  background: oklch(14% 0.02 245);
   border-radius: var(--radius-pill);
   overflow: hidden;
-  box-shadow: inset 0 1px 3px oklch(0% 0 0 / 0.4);
+  box-shadow: inset 0 2px 4px oklch(0% 0 0 / 0.55), inset 0 -1px 0 oklch(100% 0 0 / 0.06);
 }
 .hud-time-bar {
   position: relative;
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--candy);
-  box-shadow: 0 0 12px oklch(70% 0.15 260 / 0.5);
+  background: linear-gradient(180deg, oklch(86% 0.12 205), oklch(68% 0.16 235));
   transition: width 0.1s linear;
 }
-/* glossy shimmer sitting on the fill */
-.hud-time-bar::after {
+.hud-time-bar::after {   /* gloss on the fill */
   content: '';
   position: absolute;
-  inset: 0 0 50% 0;
+  inset: 1px 1px 55% 1px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(180deg, oklch(100% 0 0 / 0.35), transparent);
+  background: linear-gradient(180deg, oklch(100% 0 0 / 0.5), transparent);
   pointer-events: none;
 }
 .hud-score {
@@ -215,10 +184,10 @@ body,
   min-width: 3ch;
   text-align: right;
   color: var(--warm);
-  animation: score-bump 0.14s var(--ease-out);
+  animation: score-bump 0.16s var(--ease-pop);
 }
 @keyframes score-bump {
-  0%   { transform: scale(1.4); color: var(--accent-1); }
+  0%   { transform: scale(1.45); color: var(--accent-1); }
   100% { transform: scale(1); color: var(--warm); }
 }
 .hud-loadout {
@@ -232,11 +201,25 @@ body,
 .hud-loadout span {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 9px;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
-  background: oklch(30% 0.03 235 / 0.7);
-  border: 1px solid var(--glass-border);
+  background: var(--dome-fill);
+  border: 1px solid var(--dome-rim);
+}
+
+/* ── Low-time urgency (last 12s) ── */
+.hud-play.low {
+  border-color: oklch(66% 0.22 25 / 0.55);
+  animation: urgency 0.85s var(--ease-out) infinite;
+}
+.hud-play.low .hud-clock { color: var(--danger); }
+.hud-play.low .hud-time-bar {
+  background: linear-gradient(180deg, oklch(80% 0.16 55), oklch(64% 0.23 25));
+}
+@keyframes urgency {
+  0%, 100% { box-shadow: var(--dome-shadow); }
+  50%      { box-shadow: var(--dome-shadow), 0 0 22px oklch(66% 0.22 25 / 0.5); }
 }
 
 /* ── Full-screen panels (IDLE / GAME_OVER) ── */
@@ -248,69 +231,80 @@ body,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 16px;
   padding: 24px;
   text-align: center;
-  background:
-    radial-gradient(130% 90% at 50% 0%, oklch(22% 0.05 260 / 0.6), transparent 55%),
-    oklch(14% 0.02 235 / 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background-color: oklch(13% 0.02 245 / 0.82);
+  background-image:
+    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.045) 0 18%, transparent 44%),
+    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.18) 40%, transparent 60%);
+  background-size: 46px 46px, 46px 46px;
 }
 .panel h1 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(34px, 7vw, 56px);
-  line-height: 1.02;
-  letter-spacing: -0.01em;
-  background: var(--candy);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 3px 18px oklch(66% 0.19 300 / 0.35));
+  font-size: clamp(36px, 7.5vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-shadow: 0 3px 0 oklch(60% 0.19 285 / 0.55), 0 5px 14px oklch(0% 0 0 / 0.5);
 }
-.panel p {
-  margin: 0;
-  font-size: 16px;
-  color: var(--muted);
+.panel h1::after {              /* the bubble dot */
+  content: '';
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  margin-left: 0.14em;
+  border-radius: 50%;
+  vertical-align: 0.06em;
+  background: var(--dome-accent);
+  box-shadow: inset 0 2px 2px oklch(100% 0 0 / 0.6), 0 2px 6px oklch(62% 0.19 285 / 0.6);
 }
+.panel p { margin: 0; font-size: 16px; color: var(--muted); }
 
-/* Primary action — glossy candy pill (direct child only) */
+/* Primary action — a big poppable dome */
 .panel > button {
   pointer-events: auto;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  padding: 14px 40px;
+  padding: 16px 44px;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
-  color: oklch(20% 0.04 260);
-  background: var(--candy);
-  border: none;
+  color: oklch(22% 0.05 265);
+  background: var(--dome-accent);
+  border: 1px solid oklch(90% 0.06 220 / 0.5);
   border-radius: var(--radius-pill);
-  box-shadow: 0 10px 26px oklch(66% 0.19 300 / 0.4), inset 0 1px 0 oklch(100% 0 0 / 0.4);
-  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+  box-shadow:
+    0 12px 0 oklch(48% 0.15 285 / 0.55),   /* the "stem" — solid drop = 3D dome sitting up */
+    0 16px 26px oklch(0% 0 0 / 0.45),
+    inset 0 3px 0 oklch(100% 0 0 / 0.55);
+  transition: transform var(--dur) var(--ease-pop), box-shadow var(--dur) var(--ease-out);
 }
-.panel > button::before {
+.panel > button::before {       /* catchlight */
   content: '';
   position: absolute;
-  inset: 0 0 55% 0;
-  background: linear-gradient(180deg, oklch(100% 0 0 / 0.4), transparent);
+  inset: 0;
+  background: radial-gradient(60% 45% at 32% 18%, oklch(100% 0 0 / 0.6), transparent 70%);
   pointer-events: none;
 }
 .panel > button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 34px oklch(66% 0.19 300 / 0.5), inset 0 1px 0 oklch(100% 0 0 / 0.5);
+  box-shadow:
+    0 14px 0 oklch(48% 0.15 285 / 0.55),
+    0 20px 32px oklch(0% 0 0 / 0.5),
+    inset 0 3px 0 oklch(100% 0 0 / 0.6);
 }
-.panel > button:active {
-  transform: translateY(0) scale(0.98);
+.panel > button:active {        /* POP — squish flat, deflate the stem */
+  transform: translateY(8px) scaleY(0.9);
+  box-shadow:
+    0 3px 0 oklch(48% 0.15 285 / 0.5),
+    0 5px 12px oklch(0% 0 0 / 0.4),
+    inset 0 3px 0 oklch(100% 0 0 / 0.4);
 }
-.panel > button:focus-visible {
-  outline: 3px solid var(--accent-1);
-  outline-offset: 3px;
-}
+.panel > button:focus-visible { outline: 3px solid var(--accent-1); outline-offset: 4px; }
 
 /* ── Upgrade cards overlay (SHEET_CLEAR) ── */
 .cards-overlay {
@@ -324,11 +318,11 @@ body,
   justify-content: center;
   gap: 26px;
   padding: 24px;
-  background:
-    radial-gradient(120% 80% at 50% 0%, oklch(22% 0.05 260 / 0.55), transparent 55%),
-    oklch(12% 0.02 235 / 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: oklch(11% 0.02 245 / 0.9);
+  background-image:
+    radial-gradient(circle at 50% 38%, oklch(100% 0 0 / 0.05) 0 18%, transparent 44%),
+    radial-gradient(circle at 50% 62%, oklch(0% 0 0 / 0.2) 40%, transparent 60%);
+  background-size: 46px 46px, 46px 46px;
 }
 .cards-overlay h2 {
   margin: 0;
@@ -336,215 +330,97 @@ body,
   font-weight: 600;
   font-size: clamp(20px, 4vw, 28px);
   color: var(--ink);
+  text-shadow: 0 2px 8px oklch(0% 0 0 / 0.5);
 }
-.cards {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.card {
-  pointer-events: auto;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  width: 172px;
-  padding: 24px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  color: var(--ink);
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(12px) saturate(1.2);
-  -webkit-backdrop-filter: blur(12px) saturate(1.2);
-  box-shadow: 0 10px 30px oklch(0% 0 0 / 0.4), inset 0 1px 0 var(--glass-hi);
-  transition: transform var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out),
-    box-shadow var(--dur) var(--ease-out);
-}
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 50%;
-  background: linear-gradient(180deg, var(--glass-hi), transparent);
-  pointer-events: none;
-}
-.card:hover {
-  transform: translateY(-6px);
-  border-color: var(--accent-1);
-  box-shadow: 0 18px 40px oklch(66% 0.19 300 / 0.35), inset 0 1px 0 var(--glass-hi);
-}
-.card:active {
-  transform: translateY(-2px) scale(0.98);
-}
-.card:focus-visible {
-  outline: 3px solid var(--accent-1);
-  outline-offset: 3px;
-}
-.card-icon {
-  font-size: 44px;
-  filter: drop-shadow(0 4px 8px oklch(0% 0 0 / 0.35));
-}
-.card-name {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-}
-.card-desc {
-  font-size: 13px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.35;
-}
+.cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
 
-/* ── Meta shop (IDLE / GAME_OVER) ── */
-.shop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-.shop-currency {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  padding: 6px 18px;
-  border-radius: var(--radius-pill);
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.shop-items {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 660px;
-}
+/* dome cards + shop items share the poppable-dome behavior */
+.card,
 .shop-item {
   pointer-events: auto;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  width: 148px;
+  color: var(--ink);
+  background: var(--dome-fill);
+  border: 1px solid var(--dome-rim);
+  box-shadow: var(--dome-shadow);
+  transition: transform var(--dur) var(--ease-pop), border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+.card::before,
+.shop-item::before {            /* bubble catchlight */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--dome-hi);
+  pointer-events: none;
+}
+.card {
+  width: 176px;
+  padding: 26px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-lg);
+}
+.card:hover { transform: translateY(-6px) scale(1.02); border-color: var(--accent-1); }
+.card:active { transform: translateY(2px) scale(0.96); }  /* pop */
+.card:focus-visible { outline: 3px solid var(--accent-1); outline-offset: 3px; }
+.card-icon {
+  font-size: 44px;
+  color: var(--accent-1);
+  filter: drop-shadow(0 3px 6px oklch(0% 0 0 / 0.4));
+}
+.card-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; }
+.card-desc { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.35; }
+
+/* ── Meta shop (IDLE / GAME_OVER) ── */
+.shop { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.shop-currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent-1);
+  padding: 6px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--dome-fill);
+  border: 1px solid var(--dome-rim);
+  box-shadow: var(--dome-shadow);
+}
+.shop-items { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; max-width: 660px; }
+.shop-item {
+  width: 150px;
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  color: var(--ink);
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 var(--glass-hi);
-  transition: transform var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
 }
-.shop-item::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 45%;
-  background: linear-gradient(180deg, var(--glass-hi), transparent);
-  pointer-events: none;
-}
-.shop-item:hover:not(:disabled) {
-  transform: translateY(-3px);
-  border-color: var(--accent-1);
-}
-.shop-item:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-.shop-item:focus-visible {
-  outline: 3px solid var(--accent-1);
-  outline-offset: 2px;
-}
-.shop-item:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
-.shop-icon {
-  font-size: 28px;
-}
-.shop-name {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-}
-.shop-desc {
-  font-size: 12px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.3;
-}
+.shop-item:hover:not(:disabled) { transform: translateY(-4px) scale(1.02); border-color: var(--accent-1); }
+.shop-item:active:not(:disabled) { transform: translateY(1px) scale(0.96); }  /* pop */
+.shop-item:focus-visible { outline: 3px solid var(--accent-1); outline-offset: 2px; }
+.shop-item:disabled { opacity: 0.4; cursor: not-allowed; }
+.shop-item:disabled::before { opacity: 0.4; }
+.shop-icon { font-size: 28px; color: var(--accent-1); }
+.shop-name { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.shop-desc { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.3; }
 .shop-cost {
-  margin-top: auto;      /* pin to bottom so cost aligns across cards */
-  align-self: flex-end;  /* right edge */
+  margin-top: auto;
+  align-self: flex-end;
   padding-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
   color: var(--accent-1);
-}
-
-/* ── Low-time urgency (last 12s): recolor bar + clock red, pulse the pill ── */
-.hud-play.low {
-  border-color: oklch(65% 0.2 25 / 0.5);
-  animation: urgency 0.9s var(--ease-out) infinite;
-}
-.hud-play.low .hud-clock {
-  color: oklch(72% 0.19 25);
-}
-.hud-play.low .hud-time-bar {
-  background: linear-gradient(120deg, oklch(75% 0.17 55), oklch(65% 0.22 25));
-  box-shadow: 0 0 14px oklch(65% 0.22 25 / 0.6);
-}
-@keyframes urgency {
-  0%, 100% { box-shadow: 0 8px 30px oklch(0% 0 0 / 0.35), inset 0 1px 0 var(--glass-hi); }
-  50%      { box-shadow: 0 8px 30px oklch(65% 0.22 25 / 0.4), inset 0 1px 0 var(--glass-hi),
-             0 0 22px oklch(65% 0.22 25 / 0.45); }
-}
-
-/* ── Mute toggle — glass pill, top-right, always clickable ── */
-.mute-toggle {
-  pointer-events: auto;
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 6;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--ink);
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-pill);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.3), inset 0 1px 0 var(--glass-hi);
-  transition: transform var(--dur) var(--ease-out);
-}
-.mute-toggle:hover {
-  transform: scale(1.08);
-}
-.mute-toggle:active {
-  transform: scale(0.94);
-}
-.mute-toggle:focus-visible {
-  outline: 3px solid var(--accent-1);
-  outline-offset: 2px;
-}
-/* In the play-bar case the pill overlaps the loadout; nudge the bar clear of it */
-.hud-play {
-  padding-right: 66px;
 }
 
 /* ── IDLE / GAME_OVER copy ── */
@@ -553,44 +429,63 @@ body,
   font-size: clamp(15px, 2.6vw, 19px);
   font-weight: 500;
   color: var(--ink) !important;
-  margin-top: -6px !important;
 }
-.panel-how {
-  font-size: 13px;
-  color: var(--muted) !important;
-  max-width: 34ch;
-  line-height: 1.5;
-}
-.panel-best {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--accent-1) !important;
-}
+.panel-how { font-size: 13px; color: var(--muted) !important; max-width: 34ch; line-height: 1.5; }
+.panel-best { font-family: var(--font-display); font-weight: 600; color: var(--accent-1) !important; }
 .panel-newbest {
   font-family: var(--font-display);
   font-weight: 600;
   color: var(--warm) !important;
-  animation: score-bump 0.3s var(--ease-out);
+  animation: score-bump 0.35s var(--ease-pop);
 }
+
+/* ── Mute toggle — small dome button ── */
+.mute-toggle {
+  pointer-events: auto;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 6;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--dome-fill);
+  border: 1px solid var(--dome-rim);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--dome-shadow);
+  transition: transform var(--dur) var(--ease-pop);
+}
+.mute-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dome-hi);
+  pointer-events: none;
+}
+.mute-toggle:hover { transform: scale(1.08); }
+.mute-toggle:active { transform: scale(0.88); }   /* pop */
+.mute-toggle:focus-visible { outline: 3px solid var(--accent-1); outline-offset: 2px; }
 
 /* ── Responsive — phones (320 / 375 / 414) ── */
 @media (max-width: 480px) {
+  html, body, #root { background-size: 38px 38px, 38px 38px, 100% 100%; }
   .hud-play {
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    gap: 10px;
-    padding: 8px 12px;
-    padding-right: 58px;
+    top: 10px; left: 10px; right: 10px;
+    gap: 10px; padding: 8px 12px; padding-right: 58px;
   }
   .hud-clock { font-size: 17px; min-width: 4.5ch; }
   .hud-score { font-size: 22px; }
-  .hud-loadout { display: none; } /* reclaim width on narrow screens */
-  .mute-toggle { width: 40px; height: 40px; font-size: 18px; top: 10px; right: 10px; }
+  .hud-loadout { display: none; }
+  .mute-toggle { width: 42px; height: 42px; font-size: 18px; top: 10px; right: 10px; }
 
-  .panel { gap: 12px; padding: 20px 16px; }
+  .panel { gap: 12px; padding: 20px 16px; background-size: 38px 38px, 38px 38px; }
   .cards { gap: 12px; }
-  .card { width: min(78vw, 260px); padding: 18px 16px; }
+  .card { width: min(78vw, 260px); padding: 20px 16px; }
   .card-icon { font-size: 38px; }
 
   .shop-items { gap: 10px; max-width: 100%; }
@@ -602,8 +497,10 @@ body,
   .hud-play.low,
   .pop-point,
   .hud-score,
+  .panel-newbest,
   .card,
   .shop-item,
+  .mute-toggle,
   .panel > button {
     animation: none !important;
     transition: none !important;
