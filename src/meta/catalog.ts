@@ -7,8 +7,8 @@ export interface PowerUp {
 }
 
 export const POWERUPS: Record<string, PowerUp> = {
-  P_RICOCHET: { id: 'P_RICOCHET', name: 'Ricochet', desc: '+1 nearest bubble popped per pop', icon: 'target' },
-  P_AREA: { id: 'P_AREA', name: 'Area Blast', desc: '+1 cell pop radius', icon: 'bomb' },
+  P_RICOCHET: { id: 'P_RICOCHET', name: 'Ricochet', desc: '+1 nearest bubble popped per pop (procs every 3 pops)', icon: 'target' },
+  P_AREA: { id: 'P_AREA', name: 'Area Blast', desc: '+1 cell pop radius (procs every 5 pops)', icon: 'bomb' },
   P_AUTOCLICK: { id: 'P_AUTOCLICK', name: 'Auto-Popper', desc: '+1 auto-pop per second', icon: 'robot' },
 };
 

@@ -15,6 +15,7 @@ var _bonus_system: BonusSystem
 var _autoclick_system: AutoClickSystem
 var _emit_accum := 0.0
 var _clear_delay := 0.0   # counts up once the board is empty, before the overlay shows
+var _pop_count := 0                 # player pops this run (drives the power-up cadence)
 var _pending_choices: Array = []   # upgrades offered this sheet-clear (editor 1/2/3 picks)
 
 const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
@@ -169,48 +170,59 @@ func _unhandled_input(event: InputEvent) -> void:
 		if cell.x < 0:
 			return
 		var e := _board.entity_at(cell)
-		# hit() chips hp (darkens survivors, pops at 0). Spread only when the
-		# clicked bubble actually pops, so area/ricochet don't fire on a chip.
+		# hit() chips hp (darkens survivors via the field, pops at 0), returns true
+		# on a pop. Spread only on an actual pop, so it never fires on a chip.
 		if _board.hit(e):
 			_hand.poke()
-			_apply_spread(cell)
+			# Nerf (avoid spamming): power-ups fire on a cadence, not every pop, so
+			# they don't chain-react the whole sheet. Ricochet every 3rd player pop,
+			# area blast every 5th. Player clicks only — not auto/spread pops.
+			_pop_count += 1
+			if _pop_count % 3 == 0:
+				_apply_ricochet(cell)
+			if _pop_count % 5 == 0:
+				_apply_area_blast(cell)
 
 
-## Area (Chebyshev radius) + ricochet (N nearest) spread from a clicked cell.
-## Each spread chips hp once per bug (dedup by entity), so a multi-cell boss
-## takes one hit per blast, not one per covered cell.
-func _apply_spread(cell: Vector2i) -> void:
+## Area (Chebyshev radius) blast from a clicked cell. Chips hp once per bug (dedup
+## by entity, so a multi-cell boss takes one hit per blast, not one per cell).
+func _apply_area_blast(cell: Vector2i) -> void:
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
-
-	if lo.area > 0:
-		var targets := {}   # entity -> true (dedup; a boss covers many cells)
-		for dr in range(-lo.area, lo.area + 1):
-			for dc in range(-lo.area, lo.area + 1):
-				if dr == 0 and dc == 0:
-					continue
-				var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
-				# Never spread onto mines — draining the timer is player-click-only.
-				if n != null and n.get_component(C_Mine) == null:
-					targets[n] = true
-		for n in targets:
-			_board.hit(n)
-
-	if lo.ricochet > 0:
-		var here := Vector2(cell.x, cell.y)
-		var nearest := {}   # entity -> min distance across its cells
-		for c in _board._by_cell.keys():
-			var ce: Entity = _board._by_cell[c]
-			if ce.get_component(C_Mine) != null or ce.get_component(C_Popped) != null:
+	if lo.area <= 0:
+		return
+	var targets := {}   # entity -> true (dedup; a boss covers many cells)
+	for dr in range(-lo.area, lo.area + 1):
+		for dc in range(-lo.area, lo.area + 1):
+			if dr == 0 and dc == 0:
 				continue
-			var d: float = Vector2(c.x, c.y).distance_to(here)
-			if not nearest.has(ce) or d < nearest[ce]:
-				nearest[ce] = d
-		var cands := []
-		for ce in nearest:
-			cands.append([nearest[ce], ce])
-		cands.sort_custom(func(a, b): return a[0] < b[0])
-		for i in min(lo.ricochet, cands.size()):
-			_board.hit(cands[i][1])
+			var n := _board.entity_at(Vector2i(cell.x + dc, cell.y + dr))
+			# Never spread onto mines — draining the timer is player-click-only.
+			if n != null and n.get_component(C_Mine) == null:
+				targets[n] = true
+	for n in targets:
+		_board.hit(n)
+
+
+## Ricochet: chip the N nearest non-mine bugs to the clicked cell.
+func _apply_ricochet(cell: Vector2i) -> void:
+	var lo := _loadout.get_component(C_Loadout) as C_Loadout
+	if lo.ricochet <= 0:
+		return
+	var here := Vector2(cell.x, cell.y)
+	var nearest := {}   # entity -> min distance across its cells
+	for c in _board._by_cell.keys():
+		var ce: Entity = _board._by_cell[c]
+		if ce.get_component(C_Mine) != null or ce.get_component(C_Popped) != null:
+			continue
+		var d: float = Vector2(c.x, c.y).distance_to(here)
+		if not nearest.has(ce) or d < nearest[ce]:
+			nearest[ce] = d
+	var cands := []
+	for ce in nearest:
+		cands.append([nearest[ce], ce])
+	cands.sort_custom(func(a, b): return a[0] < b[0])
+	for i in min(lo.ricochet, cands.size()):
+		_board.hit(cands[i][1])
 
 
 func _process(delta: float) -> void:
