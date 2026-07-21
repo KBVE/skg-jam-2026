@@ -26,13 +26,15 @@ const BOSS4 := "boss4"   # 4x4 boss (splits into boss2s on pop)
 # min_sheet:   earliest sheet a kind may spawn (optional, default 0). Bosses use it.
 # split:       {kind = "..."} — on pop, fill this bubble's footprint with a grid of
 #              that child kind at half hp (optional, default {}). Boss4 splits to boss2.
+# rare_boost:  extra spawn weight per point of loadout.bonus_weight (optional, default 0).
+#              Only put it on desirable rares so power-ups skew the roll toward them.
 const DEFS := {
 	PLAIN: {color = Color(0.22, 0.74, 0.97), points = 1, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 60.0, weight_ramp = 0.0},
 	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 12.0, weight_ramp = 2.0},
 	ARMOR: {color = Color(0.90, 0.55, 0.25), points = 5, hp = 3, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 5.0, weight_ramp = 1.5},
-	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 8.0, weight_ramp = 0.0},
-	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0},
-	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0},
+	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 8.0, weight_ramp = 0.0, rare_boost = 2.0},
+	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0, rare_boost = 2.0},
+	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0, rare_boost = 1.5},
 	MINE:  {color = Color(0.92, 0.28, 0.32), points = 1, hp = 1, time = -2.0, chain = false, mine = true, w = 1, h = 1, weight_base = 3.0, weight_ramp = 2.0},
 	# Bosses: tanky + big score + bonus time. Rare, capped per sheet (see Board.spawn_sheet).
 	BOSS2: {color = Color(0.60, 0.30, 0.85), points = 40, hp = 4, time = 2.0, chain = false, mine = false, w = 2, h = 2, weight_base = 3.0, weight_ramp = 1.5, min_sheet = 2},
@@ -46,18 +48,20 @@ static func of(id: String) -> Dictionary:
 
 
 ## Weighted kind pick, ramping difficulty by sheet index.
-static func pick(sheet: int, rng: RandomNumberGenerator) -> String:
+static func pick(sheet: int, rng: RandomNumberGenerator, bonus_weight: float = 0.0) -> String:
 	var total := 0.0
 	for id in DEFS:
-		total += _weight(id, sheet)
+		total += _weight(id, sheet, bonus_weight)
 	var roll := rng.randf() * total
 	for id in DEFS:
-		roll -= _weight(id, sheet)
+		roll -= _weight(id, sheet, bonus_weight)
 		if roll <= 0.0:
 			return id
 	return PLAIN
 
 
-static func _weight(id: String, sheet: int) -> float:
+static func _weight(id: String, sheet: int, bonus_weight: float = 0.0) -> float:
 	var d: Dictionary = DEFS[id]
-	return d.weight_base + sheet * d.weight_ramp
+	# rare_boost scales the loadout bonus PER kind, so a powerup skews the roll
+	# toward desirable rares instead of lifting every weight equally.
+	return (d.weight_base + sheet * d.weight_ramp) + bonus_weight * d.get("rare_boost", 0.0)

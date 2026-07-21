@@ -120,7 +120,7 @@ func _start_run(payload: Dictionary) -> void:
 
 	_sheet = 0
 	_time_left = float(payload.get("baseTime", Config.BASE_TIME))
-	_board.spawn_sheet(_world, _sheet)
+	_board.spawn_sheet(_world, _sheet, lo.bonus_weight)
 	_fit_camera()
 	_set_state(State.PLAYING)
 	_emit_score()
@@ -282,7 +282,7 @@ func _pick_upgrade(id: String) -> void:
 		"P_AUTOCLICK": lo.autoclick += 1
 	_emit_loadout()
 	_sheet += 1
-	_board.spawn_sheet(_world, _sheet)
+	_board.spawn_sheet(_world, _sheet, lo.bonus_weight)
 	_fit_camera()
 	_set_state(State.PLAYING)
 

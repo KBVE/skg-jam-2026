@@ -151,7 +151,7 @@ func cross_of(cell: Vector2i) -> Array:
 	return out
 
 
-func spawn_sheet(world: World, sheet_index: int) -> void:
+func spawn_sheet(world: World, sheet_index: int, bonus_weight: float = 0.0) -> void:
 	clear_sheet()
 	cols = Config.cols_for(sheet_index)
 	rows = Config.rows_for(sheet_index)
@@ -164,7 +164,7 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 			# Skip cells already covered by a larger bubble placed earlier.
 			if _by_cell.has(origin):
 				continue
-			var id := Kinds.pick(sheet_index, _rng)
+			var id := Kinds.pick(sheet_index, _rng, bonus_weight)
 			var def := Kinds.of(id)
 			# Multi-cell bubbles obey min_sheet + the per-sheet cap + must fit;
 			# otherwise fall back to a plain bubble in this cell.
