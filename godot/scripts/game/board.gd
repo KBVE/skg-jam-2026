@@ -28,6 +28,14 @@ func grid_size() -> Vector2:
 
 
 func clear_sheet() -> void:
+	# Remove any leftover entities (e.g. mines that didn't block sheet completion)
+	# from the world too — forgetting them in _by_cell alone would leak them.
+	var seen := {}   # a multi-cell bubble appears under several cells; remove once
+	for e in _by_cell.values():
+		if not seen.has(e):
+			seen[e] = true
+			if is_instance_valid(e):
+				ECS.world.remove_entity(e)
 	_by_cell.clear()
 	# Hide every instance and reclaim all slots (also drops any still-fading pops).
 	if _field:
@@ -52,12 +60,30 @@ func footprint_cells(origin: Vector2i, w: int, h: int) -> Array:
 	return out
 
 
+## Draw radius for a w*h bubble: 1x1 uses the default; a multi-cell boss fills its
+## region's shortest side (small gap). Shared by spawn + click hit-testing.
+func _bubble_radius(w: int, h: int) -> float:
+	if w > 1 or h > 1:
+		return min(w, h) * Config.CELL * 0.5 * 0.9
+	return Config.BUBBLE_RADIUS
+
+
 func cell_at(world_pos: Vector2) -> Vector2i:
 	var c := int(round(world_pos.x / Config.CELL))
 	var r := int(round(world_pos.y / Config.CELL))
 	if c < 0 or c >= cols or r < 0 or r >= rows:
 		return Vector2i(-1, -1)
-	if world_pos.distance_to(cell_center(c, r)) > Config.BUBBLE_RADIUS:
+	# Accept only if the click lands within the covering bubble's real radius of its
+	# region center — so a big boss's whole body is clickable, not just a 30px dot,
+	# while empty gaps between 1x1 bubbles still miss.
+	var e := _by_cell.get(Vector2i(c, r), null) as Entity
+	if e == null:
+		return Vector2i(-1, -1)
+	var cell := e.get_component(C_Cell) as C_Cell
+	if cell == null:
+		return Vector2i(-1, -1)
+	var center := region_center(cell.col, cell.row, cell.w, cell.h)
+	if world_pos.distance_to(center) > _bubble_radius(cell.w, cell.h):
 		return Vector2i(-1, -1)
 	return Vector2i(c, r)
 
@@ -129,6 +155,9 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 	clear_sheet()
 	cols = Config.cols_for(sheet_index)
 	rows = Config.rows_for(sheet_index)
+	# Bosses (multi-cell) are rare and capped per sheet so they stay a highlight.
+	var boss_cap := clampi(1 + sheet_index / 8, 1, 2)
+	var boss_count := 0
 	for r in rows:
 		for c in cols:
 			var origin := Vector2i(c, r)
@@ -137,10 +166,17 @@ func spawn_sheet(world: World, sheet_index: int) -> void:
 				continue
 			var id := Kinds.pick(sheet_index, _rng)
 			var def := Kinds.of(id)
-			# Multi-cell bubbles need room; fall back to plain if they don't fit.
-			if (def.w > 1 or def.h > 1) and not _fits(origin, def.w, def.h):
-				id = Kinds.PLAIN
-				def = Kinds.of(id)
+			# Multi-cell bubbles obey min_sheet + the per-sheet cap + must fit;
+			# otherwise fall back to a plain bubble in this cell.
+			if def.w > 1 or def.h > 1:
+				var blocked: bool = sheet_index < int(def.get("min_sheet", 0)) \
+					or boss_count >= boss_cap \
+					or not _fits(origin, def.w, def.h)
+				if blocked:
+					id = Kinds.PLAIN
+					def = Kinds.of(id)
+				else:
+					boss_count += 1
 			_spawn_bubble(world, origin, id, def)
 
 
@@ -154,13 +190,24 @@ func _fits(origin: Vector2i, w: int, h: int) -> bool:
 	return true
 
 
-func _spawn_bubble(world: World, origin: Vector2i, id: String, def: Dictionary) -> void:
+## Spawn one bubble of `kind_id` at `origin` (top-left cell). `hp_override` > 0 sets a
+## custom starting hp (used by boss splits to spawn weaker children). No-op if it won't
+## fit — callers that spawn into freed cells (splits) should already have room.
+func spawn_bubble_at(world: World, origin: Vector2i, kind_id: String, hp_override: int = -1) -> void:
+	var def := Kinds.of(kind_id)
+	if not _fits(origin, def.w, def.h):
+		return
+	_spawn_bubble(world, origin, kind_id, def, hp_override)
+
+
+func _spawn_bubble(world: World, origin: Vector2i, id: String, def: Dictionary, hp_override: int = -1) -> void:
 	var e := Entity.new()
 	e.name = "Bubble_%d_%d" % [origin.x, origin.y]
 
+	var hp: int = hp_override if hp_override > 0 else int(def.hp)
 	var bubble := C_Bubble.new()
-	bubble.hp = def.hp
-	bubble.max_hp = def.hp
+	bubble.hp = hp
+	bubble.max_hp = hp
 	e.add_component(bubble)
 
 	var cell := C_Cell.new()
@@ -178,13 +225,9 @@ func _spawn_bubble(world: World, origin: Vector2i, id: String, def: Dictionary) 
 	if def.mine:
 		e.add_component(C_Mine.new())
 
-	# Same span rule the old BubbleView used: 1x1 keeps the default radius; a
-	# multi-cell bubble fills its region's shortest side (with a small gap).
-	var radius := Config.BUBBLE_RADIUS
-	if def.w > 1 or def.h > 1:
-		radius = min(def.w, def.h) * Config.CELL * 0.5 * 0.9
+	var radius := _bubble_radius(def.w, def.h)
 	var pos := region_center(origin.x, origin.y, def.w, def.h)
-	var slot := _field.acquire(pos, def.color, radius, def.hp)
+	var slot := _field.acquire(pos, def.color, radius, hp)
 	e.set_meta("slot", slot)
 
 	world.add_entity(e)
