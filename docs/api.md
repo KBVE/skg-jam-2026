@@ -1,9 +1,15 @@
 # @kbve/laser API Notes
 
-Reverse-engineered from `@kbve/laser@0.1.5` (Phaser 4 + React Three Fiber layer for
-React 19). **The package ships no `.d.ts`** despite declaring one, so all imports are
-untyped — we add `declare module '@kbve/laser'` in [`vite-env.d.ts`](../vite-env.d.ts).
-These notes are the de-facto type reference until the package ships real types.
+Notes on `@kbve/laser` (Phaser 4 + React Three Fiber layer for React 19).
+
+**As of `0.1.6` the package ships real types** (`index.d.ts` + `ecs.d.ts` + `mecs.d.ts`),
+so the old `declare module '@kbve/laser'` ambient shim in `vite-env.d.ts` has been
+**removed** — imports are fully typed. These notes stay as a usage guide; the shipped
+types now confirm the gotchas below (e.g. `LaserGameConfig.scenes`, `transparent`).
+
+> History: `0.1.5` shipped no `.d.ts` despite declaring one; we used an ambient shim.
+> `0.1.6` (Jul 2026) added the real declarations + a much larger export surface
+> (net/protocol, ecs, i18n, promo, physics, webgl helpers).
 
 > See also [`godot.md`](./godot.md) — the Godot (WASM) ⇄ Phaser ⇄ React harness that
 > builds on this laser layer (shared `LaserEventBus`, `transparent` Phaser overlay).
@@ -107,9 +113,10 @@ this.time.addEvent({
 
 ## R3F + React 19 note
 
-Laser re-exports `<Stage>` but ships no types, so `@react-three/fiber`'s global JSX
-augmentation (`mesh`, `boxGeometry`, lights, …) never enters the type graph. Add
-`import type {} from '@react-three/fiber'` in any file using R3F intrinsic elements.
+Even with laser's own types, `@react-three/fiber`'s **global JSX augmentation**
+(`mesh`, `boxGeometry`, lights, …) only enters the type graph when the module is
+imported for its side effects. Add `import type {} from '@react-three/fiber'` in any
+file using R3F intrinsic elements (see [`src/legacy/R3FExample.tsx`](../src/legacy/R3FExample.tsx)).
 
 ## Verified
 

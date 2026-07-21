@@ -11,7 +11,7 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "@kbve/laser": "^0.1.5",
+    "@kbve/laser": "^0.1.6",
     "@phaserjs/rapier-connector": "^1.0.0",
     "@react-three/drei": "^10.0.0",
     "@react-three/fiber": "^9.0.0",

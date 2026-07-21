@@ -20,7 +20,9 @@ export function useBusEvent<T = unknown>(
   const ref = useRef(handler);
   ref.current = handler;
   useEffect(() => {
-    const off = bus.on(event, (p: T) => ref.current(p));
+    // Custom 'godot:*' events are typed as `unknown` in LaserEventMap's index
+    // signature, so take the payload as unknown and cast to the caller's T.
+    const off = bus.on(event, (p: unknown) => ref.current(p as T));
     return off;
   }, [event]);
 }
