@@ -11,7 +11,7 @@ export interface Meta {
 
 const DEFAULT: Meta = {
   currency: 0,
-  bonuses: { baseTime: 0, ricochet: 0, area: 0, autoclick: 0 },
+  bonuses: { baseTime: 0, ricochet: 0, area: 0, robots: 0 },
 };
 
 function load(): Meta {
@@ -74,7 +74,7 @@ export function buildLoadout() {
     baseTime: BASE_TIME + b.baseTime,
     ricochet: b.ricochet,
     area: b.area,
-    autoclick: b.autoclick,
+    robots: b.robots,
   };
 }
 

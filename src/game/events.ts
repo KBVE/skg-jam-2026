@@ -26,5 +26,5 @@ export interface SheetClearPayload {
 export interface LoadoutPayload {
   ricochet: number;
   area: number;
-  autoclick: number;
+  robots: number;
 }

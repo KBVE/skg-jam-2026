@@ -368,6 +368,20 @@ body,
   color: var(--ink);
   text-shadow: 0 2px 8px oklch(0% 0 0 / 0.5);
 }
+.cards-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2.4vw, 19px);
+  color: var(--ink);
+}
+.cards-status .cards-score,
+.cards-status .cards-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
 
 /* dome cards + shop items share the poppable-dome behavior */

@@ -51,6 +51,15 @@ func region_center(col: int, row: int, w: int, h: int) -> Vector2:
 	return Vector2((col + (w - 1) * 0.5) * Config.CELL, (row + (h - 1) * 0.5) * Config.CELL)
 
 
+## Board-space center of a bubble entity (via its C_Cell footprint). Used by robots
+## to walk to a target; falls back to origin for an entity without a cell.
+func entity_center(e: Entity) -> Vector2:
+	var cell := e.get_component(C_Cell) as C_Cell
+	if cell == null:
+		return Vector2.ZERO
+	return region_center(cell.col, cell.row, cell.w, cell.h)
+
+
 ## All cells a w*h bubble at `origin` (top-left) covers.
 func footprint_cells(origin: Vector2i, w: int, h: int) -> Array:
 	var out := []

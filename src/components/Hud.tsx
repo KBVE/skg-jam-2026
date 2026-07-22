@@ -38,7 +38,7 @@ export function Hud() {
   const [score, setScore] = useState(0);
   const [time, setTime] = useState(BASE_TIME);
   const [last, setLast] = useState<RunOverPayload | null>(null);
-  const [loadout, setLoadout] = useState<LoadoutPayload>({ ricochet: 0, area: 0, autoclick: 0 });
+  const [loadout, setLoadout] = useState<LoadoutPayload>({ ricochet: 0, area: 0, robots: 0 });
   const [muted, setMuted] = useState(isMuted());
   const [best, setBest] = useState(readBest());
   const [beatBest, setBeatBest] = useState(false);
@@ -90,7 +90,7 @@ export function Hud() {
             <div className="hud-loadout">
               {loadout.ricochet > 0 && <span><Icon name={POWERUPS.P_RICOCHET.icon} />{loadout.ricochet}</span>}
               {loadout.area > 0 && <span><Icon name={POWERUPS.P_AREA.icon} />{loadout.area}</span>}
-              {loadout.autoclick > 0 && <span><Icon name={POWERUPS.P_AUTOCLICK.icon} />{loadout.autoclick}</span>}
+              {loadout.robots > 0 && <span><Icon name={POWERUPS.P_ROBOT.icon} />{loadout.robots}</span>}
             </div>
           </div>
           <MuteToggle muted={muted} onToggle={() => setMuted(toggleMute())} />

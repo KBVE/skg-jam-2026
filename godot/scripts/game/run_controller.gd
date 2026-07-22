@@ -12,14 +12,15 @@ var _stats: Entity
 var _loadout: Entity
 var _score_system: ScoreSystem
 var _bonus_system: BonusSystem
-var _autoclick_system: AutoClickSystem
+var _robot_system: RobotSystem
+var _robots: Array[Entity] = []   # live helper-robot entities (synced to loadout.robots)
 var _emit_accum := 0.0
 var _clear_delay := 0.0   # counts up once the board is empty, before the overlay shows
 var _pop_count := 0                 # player pops this run (drives the power-up cadence)
 var _pending_choices: Array = []   # upgrades offered this sheet-clear (editor 1/2/3 picks)
 
 const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
-const POOL := ["P_RICOCHET", "P_AREA", "P_AUTOCLICK"]
+const POOL := ["P_RICOCHET", "P_AREA", "P_ROBOT"]
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _board: Board = $Board
@@ -51,10 +52,9 @@ func _ready() -> void:
 	_score_system.camera = _camera
 	_world.add_system(_score_system)
 
-	_autoclick_system = AutoClickSystem.new()
-	_autoclick_system.loadout_entity = _loadout
-	_autoclick_system.board = _board
-	_world.add_system(_autoclick_system)
+	_robot_system = RobotSystem.new()
+	_robot_system.board = _board
+	_world.add_system(_robot_system)
 
 	_bonus_system = BonusSystem.new()
 	_world.add_system(_bonus_system)
@@ -105,7 +105,7 @@ func handle_command(cmd: String, _payload: Dictionary) -> void:
 				_end_run()
 
 
-## payload = loadout from meta: { baseTime, ricochet, area, autoclick }.
+## payload = loadout from meta: { baseTime, ricochet, area, robots }.
 func _start_run(payload: Dictionary) -> void:
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
 	stats.score = 0
@@ -116,11 +116,13 @@ func _start_run(payload: Dictionary) -> void:
 	var lo := _loadout.get_component(C_Loadout) as C_Loadout
 	lo.ricochet = int(payload.get("ricochet", 0))
 	lo.area = int(payload.get("area", 0))
-	lo.autoclick = int(payload.get("autoclick", 0))
+	lo.robots = int(payload.get("robots", 0))
 
+	_clear_robots()   # drop any robots left over from a prior run before re-syncing
 	_sheet = 0
 	_time_left = float(payload.get("baseTime", Config.BASE_TIME))
 	_board.spawn_sheet(_world, _sheet, lo.bonus_weight)
+	_sync_robots(lo.robots)
 	_fit_camera()
 	_set_state(State.PLAYING)
 	_emit_score()
@@ -279,8 +281,9 @@ func _pick_upgrade(id: String) -> void:
 	match id:
 		"P_RICOCHET": lo.ricochet += 1
 		"P_AREA": lo.area = min(lo.area + 1, Config.AREA_MAX)
-		"P_AUTOCLICK": lo.autoclick += 1
+		"P_ROBOT": lo.robots += 1
 	_emit_loadout()
+	_sync_robots(lo.robots)
 	_sheet += 1
 	_board.spawn_sheet(_world, _sheet, lo.bonus_weight)
 	_fit_camera()
@@ -292,8 +295,48 @@ func _emit_loadout() -> void:
 	ECS.world.emit_event(GameEvents.UPGRADE_PICKED, null, {
 		"ricochet": lo.ricochet,
 		"area": lo.area,
-		"autoclick": lo.autoclick,
+		"robots": lo.robots,
 	})
+
+
+## Reconcile live robot entities (+ their board visuals) to the loadout count.
+func _sync_robots(n: int) -> void:
+	while _robots.size() < n:
+		_spawn_robot()
+	while _robots.size() > n:
+		_despawn_robot()
+
+
+func _spawn_robot() -> void:
+	var e := Entity.new()
+	e.name = "Robot"
+	e.add_component(C_Robot.new())
+	_world.add_entity(e)
+	# Components are duplicated on add_entity, so wire the visual on the live copy.
+	var rob := e.get_component(C_Robot) as C_Robot
+	var vis := RobotVisual.new()
+	_board.add_child(vis)
+	# Fan robots out along the bottom edge of the grid so they don't overlap.
+	var gs := _board.grid_size()
+	vis.position = Vector2(_board.grid_center().x + _robots.size() * Config.CELL * 0.6, gs.y)
+	rob.visual = vis
+	_robots.append(e)
+
+
+func _despawn_robot() -> void:
+	if _robots.is_empty():
+		return
+	var e: Entity = _robots.pop_back()
+	var rob := e.get_component(C_Robot) as C_Robot
+	if rob and is_instance_valid(rob.visual):
+		rob.visual.queue_free()
+	_world.remove_entity(e)
+
+
+## Free all robots (new run / game over) so none leak across runs.
+func _clear_robots() -> void:
+	while not _robots.is_empty():
+		_despawn_robot()
 
 
 func _emit_score() -> void:
@@ -308,7 +351,8 @@ func _emit_time() -> void:
 ## Spend run score for more time. Keeping the transaction here makes Godot the
 ## authority even if a stale or repeated command arrives from the web shell.
 func _buy_time() -> void:
-	if _state != State.PLAYING:
+	# Allowed mid-run and on the sheet-clear screen (banks time for the next sheet).
+	if _state != State.PLAYING and _state != State.SHEET_CLEAR:
 		return
 	var stats := _stats.get_component(C_RunStats) as C_RunStats
 	if stats.score < Config.TIME_PURCHASE_COST:
