@@ -9,4 +9,11 @@
 
 ## Credits
 
-- 3D hands: **WRAD ARMS** by wriks — https://wriks.itch.io/wrad-arms — CC0 (no attribution required).
+-   3D hands: **WRAD ARMS** by wriks — https://wriks.itch.io/wrad-arms — CC0 (no attribution required).
+
+-   Low Poly Robot by Quaternius - https://quaternius.itch.io/lowpoly-robot CC0 
+
+
+
+CCO - License https://creativecommons.org/publicdomain/zero/1.0/
+
