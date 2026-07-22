@@ -64,6 +64,8 @@ func _step(r: Entity, rob: C_Robot, delta: float) -> void:
 				var popped := false
 				if _valid(rob.target):
 					popped = board.hit(rob.target)
+				if popped:
+					Dbg.toast("robot popped a bubble", "robot-pop")   # debug demo (debounced)
 				if popped or not _valid(rob.target):
 					_release(rob)
 				rob.state = C_Robot.State.COOLDOWN
