@@ -20,7 +20,7 @@ var _pop_count := 0                 # player pops this run (drives the power-up 
 var _pending_choices: Array = []   # upgrades offered this sheet-clear (editor 1/2/3 picks)
 
 const SHEET_CLEAR_DELAY := 0.2   # let pop animations (0.16s) finish before overlay
-const POOL := ["P_RICOCHET", "P_AREA", "P_ROBOT"]
+const POOL := ["P_RICOCHET", "P_AREA", "P_ROBOT", "P_TIMEBUBBLE"]
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _board: Board = $Board
@@ -117,6 +117,17 @@ func _start_run(payload: Dictionary) -> void:
 	lo.ricochet = int(payload.get("ricochet", 0))
 	lo.area = int(payload.get("area", 0))
 	lo.robots = int(payload.get("robots", 0))
+	lo.bonus_weights = {
+	0: 0,
+	1: 0,
+	2: 0,
+	3: 0,
+	4: 0,
+	5: 0,
+	6: 0,
+	7: 0,
+	8: 0
+}
 
 	_clear_robots()   # drop any robots left over from a prior run before re-syncing
 	_sheet = 0
