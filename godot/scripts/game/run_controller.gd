@@ -117,17 +117,6 @@ func _start_run(payload: Dictionary) -> void:
 	lo.ricochet = int(payload.get("ricochet", 0))
 	lo.area = int(payload.get("area", 0))
 	lo.robots = int(payload.get("robots", 0))
-	lo.bonus_weights = {
-	0: 0,
-	1: 0,
-	2: 0,
-	3: 0,
-	4: 0,
-	5: 0,
-	6: 0,
-	7: 0,
-	8: 0
-}
 
 	_clear_robots()   # drop any robots left over from a prior run before re-syncing
 	_sheet = 0
