@@ -293,7 +293,10 @@ func _pick_upgrade(id: String) -> void:
 		"P_RICOCHET": lo.ricochet += 1
 		"P_AREA": lo.area = min(lo.area + 1, Config.AREA_MAX)
 		"P_ROBOT": lo.robots += 1
-		"P_TIMEBUBBLE": lo.bonus_weight[4] += 1
+		"P_TIMEBUBBLE": 
+			if lo.bonus_weight.get("CLOCK") != null:
+				lo.bonus_weight["CLOCK"] += 1
+			
 	_emit_loadout()
 	_sync_robots(lo.robots)
 	_sheet += 1

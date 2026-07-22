@@ -51,10 +51,10 @@ static func of(id: String) -> Dictionary:
 static func pick(sheet: int, rng: RandomNumberGenerator, bonus_weight: Dictionary) -> String:
 	var total := 0.0
 	for id in DEFS:
-		total += _weight(id, sheet, bonus_weight[id])
+		total += _weight(id, sheet, bonus_weight.get(id, 0.0))
 	var roll := rng.randf() * total
 	for id in DEFS:
-		roll -= _weight(id, sheet, bonus_weight[id])
+		roll -= _weight(id, sheet, bonus_weight.get(id, 0.0))
 		if roll <= 0.0:
 			return id
 	return PLAIN
@@ -64,4 +64,4 @@ static func _weight(id: String, sheet: int, bonus_weight: float = 0.0) -> float:
 	var d: Dictionary = DEFS[id]
 	# rare_boost scales the loadout bonus PER kind, so a powerup skews the roll
 	# toward desirable rares instead of lifting every weight equally.
-	return (d.weight_base + sheet * d.weight_ramp) + ((bonus_weight * d.get("rare_boost", 0.0)) * d.weight_base)
+	return (d.weight_base + (sheet * d.weight_ramp)) + ((bonus_weight * d.get("rare_boost", 0.0)) * d.weight_base)
