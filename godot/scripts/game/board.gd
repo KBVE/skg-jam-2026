@@ -160,7 +160,7 @@ func cross_of(cell: Vector2i) -> Array:
 	return out
 
 
-func spawn_sheet(world: World, sheet_index: int, bonus_weight: float = 0.0) -> void:
+func spawn_sheet(world: World, sheet_index: int, bonus_weight: Dictionary) -> void:
 	clear_sheet()
 	cols = Config.cols_for(sheet_index)
 	rows = Config.rows_for(sheet_index)

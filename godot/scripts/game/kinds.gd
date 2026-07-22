@@ -33,7 +33,7 @@ const DEFS := {
 	TOUGH: {color = Color(0.55, 0.60, 0.70), points = 3, hp = 2, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 12.0, weight_ramp = 2.0},
 	ARMOR: {color = Color(0.90, 0.55, 0.25), points = 5, hp = 3, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 5.0, weight_ramp = 1.5},
 	GOLD:  {color = Color(0.98, 0.80, 0.20), points = 10, hp = 1, time = 0.0, chain = false, mine = false, w = 1, h = 1, weight_base = 8.0, weight_ramp = 0.0, rare_boost = 2.0},
-	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0, rare_boost = 2.0},
+	CLOCK: {color = Color(0.30, 0.85, 0.55), points = 1, hp = 1, time = 2.0, chain = false, mine = false, w = 1, h = 1, weight_base = 6.0, weight_ramp = 0.0, rare_boost = 0.05},
 	CHAIN: {color = Color(0.78, 0.45, 0.95), points = 1, hp = 1, time = 0.0, chain = true, mine = false, w = 1, h = 1, weight_base = 4.0, weight_ramp = 0.0, rare_boost = 1.5},
 	MINE:  {color = Color(0.92, 0.28, 0.32), points = 1, hp = 1, time = -2.0, chain = false, mine = true, w = 1, h = 1, weight_base = 3.0, weight_ramp = 2.0},
 	# Bosses: tanky + big score + bonus time. Rare, capped per sheet (see Board.spawn_sheet).
@@ -48,13 +48,13 @@ static func of(id: String) -> Dictionary:
 
 
 ## Weighted kind pick, ramping difficulty by sheet index.
-static func pick(sheet: int, rng: RandomNumberGenerator, bonus_weight: float = 0.0) -> String:
+static func pick(sheet: int, rng: RandomNumberGenerator, bonus_weight: Dictionary) -> String:
 	var total := 0.0
 	for id in DEFS:
-		total += _weight(id, sheet, bonus_weight)
+		total += _weight(id, sheet, bonus_weight[id])
 	var roll := rng.randf() * total
 	for id in DEFS:
-		roll -= _weight(id, sheet, bonus_weight)
+		roll -= _weight(id, sheet, bonus_weight[id])
 		if roll <= 0.0:
 			return id
 	return PLAIN
@@ -64,4 +64,4 @@ static func _weight(id: String, sheet: int, bonus_weight: float = 0.0) -> float:
 	var d: Dictionary = DEFS[id]
 	# rare_boost scales the loadout bonus PER kind, so a powerup skews the roll
 	# toward desirable rares instead of lifting every weight equally.
-	return (d.weight_base + sheet * d.weight_ramp) + bonus_weight * d.get("rare_boost", 0.0)
+	return (d.weight_base + sheet * d.weight_ramp) + ((bonus_weight * d.get("rare_boost", 0.0)) * d.weight_base)

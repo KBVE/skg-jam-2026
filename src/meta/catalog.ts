@@ -10,6 +10,7 @@ export const POWERUPS: Record<string, PowerUp> = {
   P_RICOCHET: { id: 'P_RICOCHET', name: 'Ricochet', desc: '+1 nearest bubble popped per pop (procs every 3 pops)', icon: 'target' },
   P_AREA: { id: 'P_AREA', name: 'Area Blast', desc: '+1 cell pop radius (procs every 5 pops)', icon: 'bomb' },
   P_ROBOT: { id: 'P_ROBOT', name: 'Deploy Robot', desc: '+1 robot that walks over and pops bubbles', icon: 'robot' },
+  P_TIMEBUBBLE: { id: 'P_TIMEBUBBLE', name: 'Time Bubble', desc: '+5% increase chance of spawning time bubbles', icon: 'bomb'},
 };
 
 export interface MetaBonuses {
