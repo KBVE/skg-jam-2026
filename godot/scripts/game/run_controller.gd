@@ -189,6 +189,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				_apply_ricochet(cell)
 			if _pop_count % 5 == 0:
 				_apply_area_blast(cell)
+	
+	# Debug button for checking bonus weight
+	#if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		#var lo := _loadout.get_component(C_Loadout) as C_Loadout
+		#Dbg.toast(lo.bonus_weight)
 
 
 ## Area (Chebyshev radius) blast from a clicked cell. Chips hp once per bug (dedup
