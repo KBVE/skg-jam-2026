@@ -28,3 +28,7 @@ export interface LoadoutPayload {
   area: number;
   robots: number;
 }
+export interface DebugToastPayload {
+  text: string;
+  key?: string; // debounce key; repeats within the window are dropped
+}

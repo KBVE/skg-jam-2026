@@ -3,6 +3,13 @@ name: Deploy to itch.io
 on:
   push:
     branches: [main]
+    # Docs-only changes don't affect the build, so skip deploy for them.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.editorconfig'
   workflow_dispatch:
 
 # Edit ITCH_TARGET to your itch.io "user/game" slug.

@@ -3,6 +3,7 @@ import { GodotGame } from './godot/GodotGame';
 import { Hud } from './components/Hud';
 import { UpgradeCards } from './components/UpgradeCards';
 import { PopPoints } from './components/PopPoints';
+import { DebugToast } from './components/DebugToast';
 import { gameConfig } from './game/config';
 
 const fill = { position: 'absolute', inset: 0 } as const;
@@ -25,6 +26,7 @@ export default function App() {
       <PopPoints />
       <Hud />
       <UpgradeCards />
+      <DebugToast />
     </div>
   );
 }
